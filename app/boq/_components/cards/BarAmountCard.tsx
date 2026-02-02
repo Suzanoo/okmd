@@ -1,4 +1,3 @@
-// app/boq/_components/cards/BarAmountCard.tsx
 "use client";
 
 import { ReactNode } from "react";
@@ -15,6 +14,8 @@ import {
 import ChartCardShell from "./ChartCardShell";
 import type { ChartDatum } from "@/lib/boq/boqTransform";
 import { formatMoney } from "@/lib/boq/boqTransform";
+import { useThemeStore } from "@/lib/theme/store";
+import { getChartTheme } from "@/lib/theme/chartTheme";
 
 type Props = {
   title: string;
@@ -64,18 +65,30 @@ export default function BarAmountCard({
 }: Props) {
   const usePalette = Array.isArray(palette) && palette.length > 0;
 
+  const isDark = useThemeStore((s) => s.theme) === "dark";
+  const t = getChartTheme(isDark);
+
   return (
     <ChartCardShell title={title} subtitle={subtitle} right={topControl}>
       {disabled ? (
-        <div className="rounded-xl border border-dashed p-6 text-sm text-muted-foreground">
+        <div
+          className="rounded-xl border border-dashed p-6 text-sm"
+          style={{
+            borderColor: t.hintBorder,
+            color: t.hintText,
+            background: t.hintBg,
+          }}
+        >
           {disabledHint}
         </div>
       ) : (
         <>
           {selected ? (
-            <div className="mb-2 text-xs text-muted-foreground">
+            <div className="mb-2 text-xs" style={{ color: t.tooltipMuted }}>
               Selected:{" "}
-              <span className="font-medium text-foreground">{selected}</span>
+              <span className="font-medium" style={{ color: t.tooltipText }}>
+                {selected}
+              </span>
             </div>
           ) : null}
 
@@ -85,32 +98,52 @@ export default function BarAmountCard({
                 data={data}
                 margin={{ top: 6, right: 8, bottom: 6, left: 8 }}
               >
-                <CartesianGrid strokeDasharray="3 3" />
+                <CartesianGrid stroke={t.gridStroke} strokeDasharray="3 3" />
+
                 <XAxis
                   dataKey="name"
-                  tick={{ fontSize: 11 }}
+                  tick={{ fontSize: 11, fill: t.axisTick }}
+                  axisLine={{ stroke: t.axisLine }}
+                  tickLine={{ stroke: t.axisLine }}
                   interval={0}
                   angle={-18}
                   textAnchor="end"
                   height={50}
                 />
+
                 <YAxis
                   scale="log"
                   domain={["auto", "auto"]}
-                  tick={{ fontSize: 11 }}
+                  tick={{ fontSize: 11, fill: t.axisTick }}
+                  axisLine={{ stroke: t.axisLine }}
+                  tickLine={{ stroke: t.axisLine }}
                   tickFormatter={(v) => formatMoney(Number(v))}
                   width={70}
                 />
+
                 <Tooltip
                   formatter={(v) => formatMoney(Number(v))}
-                  labelStyle={{ fontSize: 12 }}
+                  labelStyle={{ fontSize: 12, color: t.tooltipMuted }}
+                  itemStyle={{ color: t.tooltipText }}
+                  contentStyle={{
+                    backgroundColor: t.tooltipBg,
+                    border: `1px solid ${t.tooltipBorder}`,
+                    borderRadius: 12,
+                    color: t.tooltipText,
+                    boxShadow: t.isDark
+                      ? "0 16px 36px rgba(0,0,0,0.55)"
+                      : "0 14px 32px rgba(2,6,23,0.10)",
+                  }}
                 />
 
                 <Bar
                   dataKey="value"
-                  opacity={0.9}
+                  opacity={0.92}
                   fill={usePalette ? undefined : color}
-                  onClick={(d: any) => onSelect?.(String(d?.name ?? ""))}
+                  onClick={(d: unknown) => {
+                    const name = String((d as any)?.name ?? "");
+                    if (name) onSelect?.(name);
+                  }}
                 >
                   {usePalette
                     ? data.map((d, i) => (
@@ -128,7 +161,7 @@ export default function BarAmountCard({
             </ResponsiveContainer>
           </div>
 
-          <div className="mt-2 text-xs text-muted-foreground">
+          <div className="mt-2 text-xs" style={{ color: t.tooltipMuted }}>
             Tip: คลิก bar เพื่อ cascade (optional)
           </div>
         </>

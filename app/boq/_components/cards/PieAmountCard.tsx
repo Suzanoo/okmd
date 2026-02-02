@@ -4,6 +4,8 @@ import { ResponsiveContainer, PieChart, Pie, Tooltip, Cell } from "recharts";
 import ChartCardShell from "./ChartCardShell";
 import type { ChartDatum } from "@/lib/boq/boqTransform";
 import { formatMoney } from "@/lib/boq/boqTransform";
+import { useThemeStore } from "@/lib/theme/store";
+import { getChartTheme } from "@/lib/theme/chartTheme";
 
 const PALETTE = [
   "hsl(217 91% 60%)",
@@ -35,6 +37,9 @@ export default function PieAmountCard({
   onClear,
   height = 260,
 }: Props) {
+  const isDark = useThemeStore((s) => s.theme) === "dark";
+  const t = getChartTheme(isDark);
+
   return (
     <ChartCardShell
       title={title}
@@ -42,9 +47,24 @@ export default function PieAmountCard({
       right={
         selected ? (
           <button
-            onClick={onClear}
-            className="rounded-full border px-3 py-1 text-xs hover:bg-muted"
             type="button"
+            onClick={onClear}
+            className="rounded-full border px-3 py-1 text-xs transition"
+            style={{
+              borderColor: t.axisLine,
+              background: t.isDark ? "rgba(2,6,23,0.10)" : "rgba(2,6,23,0.02)",
+              color: t.tooltipText,
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = t.isDark
+                ? "rgba(2,6,23,0.20)"
+                : "rgba(2,6,23,0.05)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = t.isDark
+                ? "rgba(2,6,23,0.10)"
+                : "rgba(2,6,23,0.02)";
+            }}
           >
             Reset
           </button>
@@ -52,9 +72,11 @@ export default function PieAmountCard({
       }
     >
       {selected ? (
-        <div className="mb-2 text-xs text-muted-foreground">
+        <div className="mb-2 text-xs" style={{ color: t.tooltipMuted }}>
           Selected:{" "}
-          <span className="font-medium text-foreground">{selected}</span>
+          <span className="font-medium" style={{ color: t.tooltipText }}>
+            {selected}
+          </span>
         </div>
       ) : null}
 
@@ -63,8 +85,19 @@ export default function PieAmountCard({
           <PieChart>
             <Tooltip
               formatter={(v) => formatMoney(Number(v))}
-              labelStyle={{ fontSize: 12 }}
+              labelStyle={{ fontSize: 12, color: t.tooltipMuted }}
+              itemStyle={{ color: t.tooltipText }}
+              contentStyle={{
+                backgroundColor: t.tooltipBg,
+                border: `1px solid ${t.tooltipBorder}`,
+                borderRadius: 12,
+                color: t.tooltipText,
+                boxShadow: t.isDark
+                  ? "0 16px 36px rgba(0,0,0,0.55)"
+                  : "0 14px 32px rgba(2,6,23,0.10)",
+              }}
             />
+
             <Pie
               data={data}
               dataKey="value"
@@ -72,17 +105,29 @@ export default function PieAmountCard({
               innerRadius={55}
               outerRadius={90}
               paddingAngle={2}
-              onClick={(d: any) => onSelect(String(d?.name ?? ""))}
+              stroke={t.sliceStroke}
+              strokeWidth={t.sliceStrokeWidth}
+              onClick={(d: unknown) => {
+                const name = String((d as any)?.name ?? "");
+                if (name) onSelect(name);
+              }}
             >
-              {data.map((_, i) => (
-                <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
-              ))}
+              {data.map((d, i) => {
+                const isDim = selected && d.name !== selected;
+                return (
+                  <Cell
+                    key={`cell-${d.name}-${i}`}
+                    fill={PALETTE[i % PALETTE.length]}
+                    opacity={isDim ? 0.35 : 0.95}
+                  />
+                );
+              })}
             </Pie>
           </PieChart>
         </ResponsiveContainer>
       </div>
 
-      <div className="mt-2 text-xs text-muted-foreground">
+      <div className="mt-2 text-xs" style={{ color: t.tooltipMuted }}>
         Tip: คลิก slice เพื่อ filter WBS-1
       </div>
     </ChartCardShell>

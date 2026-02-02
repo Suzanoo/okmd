@@ -13,16 +13,22 @@ export default function SheetPicker({
   onChange,
   disabled,
 }: Props) {
+  const isDisabled = disabled || sheets.length === 0;
+
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="text-sm font-medium">Select Sheet</div>
+    <section className="rounded-2xl border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-4 shadow-[var(--shadow-card)]">
+      <div className="text-sm font-medium text-[color:var(--color-muted-foreground)]">
+        Select Sheet
+      </div>
 
       <select
-        className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm
-           focus:outline-none focus:ring-2 focus:ring-sky-200"
+        className="mt-2 h-10 w-full rounded-xl border border-[color:var(--color-border)]
+          bg-[color:var(--color-surface-2)] px-3 text-sm text-[color:var(--color-foreground)]
+          shadow-[var(--shadow-input)] outline-none
+          focus:ring-2 focus:ring-[color:var(--color-accent)]/35 disabled:opacity-60"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        disabled={disabled || sheets.length === 0}
+        disabled={isDisabled}
       >
         <option value="" disabled>
           {sheets.length === 0
@@ -36,6 +42,10 @@ export default function SheetPicker({
           </option>
         ))}
       </select>
-    </div>
+
+      <div className="mt-2 text-xs text-[color:var(--color-muted-foreground)]">
+        แสดงเฉพาะ sheet ที่มี column ครบตามเงื่อนไข
+      </div>
+    </section>
   );
 }

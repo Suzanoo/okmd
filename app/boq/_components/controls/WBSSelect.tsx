@@ -19,9 +19,15 @@ export default function WBSSelect({
 }: Props) {
   return (
     <label className="flex items-center gap-2 text-xs">
-      <span className="text-muted-foreground">{label}</span>
+      <span className="text-[color:var(--color-muted-foreground)]">
+        {label}
+      </span>
+
       <select
-        className="h-8 rounded-xl border bg-background px-2 text-xs disabled:opacity-60"
+        className="h-9 rounded-xl border border-[color:var(--color-border)]
+          bg-[color:var(--color-surface-2)] px-3 text-sm text-[color:var(--color-foreground)]
+          shadow-[var(--shadow-input)] outline-none
+          focus:ring-2 focus:ring-[color:var(--color-accent)]/35 disabled:opacity-60"
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value ? e.target.value : null)}
         disabled={disabled}

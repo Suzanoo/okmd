@@ -16,14 +16,28 @@ export default function ChartCardShell({
   children,
 }: Props) {
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section
+      className="
+        rounded-3xl border border-[color:var(--color-border)]
+        bg-[color:var(--color-surface)] p-5
+        shadow-[var(--shadow-card)]
+        transition
+        hover:shadow-[var(--shadow-card-lg)]
+      "
+    >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-sm font-semibold text-slate-900">{title}</div>
+          <div className="text-sm font-semibold text-[color:var(--color-foreground)]">
+            {title}
+          </div>
+
           {subtitle ? (
-            <div className="mt-0.5 text-xs text-slate-500">{subtitle}</div>
+            <div className="mt-0.5 text-xs text-[color:var(--color-muted-foreground)]">
+              {subtitle}
+            </div>
           ) : null}
         </div>
+
         {right ? <div className="shrink-0">{right}</div> : null}
       </div>
 

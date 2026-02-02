@@ -17,6 +17,7 @@ import BarAmountCard from "./cards/BarAmountCard";
 import WBSSelect from "./controls/WBSSelect";
 
 import QuerySection from "./QuerySection";
+import ThemeToggle from "@/app/_components/ThemeToggle";
 
 function boqPath(building: BoqBuilding) {
   return `/boq/BOQ_${building}.xlsx`;
@@ -169,49 +170,67 @@ export default function BOQClient() {
     setWbs4(v);
   };
 
-  // ===== Modern bar colors =====
-  const C_WBS2 = "hsl(217 91% 60%)"; // blue
-  const C_WBS3 = "hsl(160 84% 39%)"; // teal/green
-  const C_WBS4 = "hsl(262 83% 58%)"; // purple
-  const C_DESC = "hsl(25 95% 53%)"; // orange
+  // ===== Accent colors (still ok to keep) =====
+  const C_WBS2 = "hsl(217 91% 60%)";
+  const C_WBS3 = "hsl(160 84% 39%)";
+  const C_WBS4 = "hsl(262 83% 58%)";
+  const C_DESC = "hsl(25 95% 53%)";
+
+  // ===== Local UI tokens (use theme vars) =====
+  const cardBase =
+    "rounded-3xl border border-[color:var(--color-border)] bg-[color:var(--color-surface)] shadow-[var(--shadow-card)]";
+  const cardPad = "px-6 py-5";
+  const muted = "text-[color:var(--color-muted-foreground)]";
+  const fg = "text-[color:var(--color-foreground)]";
+
+  const pill =
+    "rounded-full border border-[color:var(--color-border)] bg-[color:var(--color-surface-2)] px-3 py-1 text-xs " +
+    "text-[color:var(--color-foreground)]";
+
+  const pillGhost =
+    "rounded-full border border-[color:var(--color-border)] bg-transparent px-3 py-1 text-xs " +
+    "text-[color:var(--color-foreground)]/80";
+
+  const btnGhost =
+    "rounded-full border border-[color:var(--color-border)] bg-[color:var(--color-surface-2)] px-3 py-1 text-xs " +
+    "text-[color:var(--color-foreground)] transition hover:opacity-90";
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-[color:var(--color-background)]">
       <div className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
-        <header className="rounded-3xl border border-slate-200 bg-white px-6 py-5 shadow-sm">
+        <div className="flex justify-end ">
+          <ThemeToggle />
+        </div>
+
+        {/* ===== Header (theme-based) ===== */}
+        <header className={`${cardBase} ${cardPad}`}>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-xs font-medium text-slate-500">
+              <p className={`text-xs font-medium ${muted}`}>
                 OKMD • Construction Management
               </p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">
-                BOQ Dashboard
-              </h1>
-              <p className="mt-1 text-sm text-slate-600">
+              <h1 className={`text-2xl font-semibold ${fg}`}>BOQ Dashboard</h1>
+              <p className={`mt-1 text-sm ${muted}`}>
                 Budget structure overview → drill down by WBS
               </p>
             </div>
 
-            <div className="text-xs text-slate-500">
-              Building:{" "}
-              <span className="font-medium text-slate-800">{building}</span>
+            <div className={`text-xs ${muted}`}>
+              Building: <span className={`font-medium ${fg}`}>{building}</span>
               {selectedSheet ? (
                 <>
                   {" "}
                   • Sheet:{" "}
-                  <span className="font-medium text-slate-800">
-                    {selectedSheet}
-                  </span>
+                  <span className={`font-medium ${fg}`}>{selectedSheet}</span>
                 </>
               ) : null}
             </div>
           </div>
         </header>
 
-        {/* Source controls */}
+        {/* ===== Source controls ===== */}
         <div className="grid gap-4 lg:grid-cols-2">
           <BuildingFilePicker building={building} onChange={setBuilding} />
-
           <SheetPicker
             sheets={validSheets}
             value={selectedSheet}
@@ -220,34 +239,34 @@ export default function BOQClient() {
           />
         </div>
 
+        {/* ===== Loading / Error (theme-based) ===== */}
         {isLoading ? (
-          <div className="rounded-2xl border p-4 text-sm text-muted-foreground">
-            Loading BOQ… <span className="font-mono">{boqPath(building)}</span>
+          <div
+            className="rounded-2xl border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-4 text-sm"
+            style={{ boxShadow: "var(--shadow-card)" }}
+          >
+            <span className={muted}>Loading BOQ… </span>
+            <span className="font-mono text-[color:var(--color-foreground)]/90">
+              {boqPath(building)}
+            </span>
           </div>
         ) : null}
 
         {errorMsg ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <div className="rounded-2xl border border-red-400/30 bg-red-500/10 p-4 text-sm text-red-200">
             {errorMsg}
           </div>
         ) : null}
 
-        {/* Current filter */}
-        <div className="rounded-2xl border bg-background/50 p-4 text-sm">
-          <div className="text-xs text-muted-foreground">Current filter</div>
-          <div className="mt-1 flex flex-wrap items-center gap-2">
-            <span className="rounded-full border px-3 py-1 text-xs">
-              WBS-1: {wbs1 ?? "All"}
-            </span>
-            <span className="rounded-full border px-3 py-1 text-xs">
-              WBS-2: {wbs2 ?? "All"}
-            </span>
-            <span className="rounded-full border px-3 py-1 text-xs">
-              WBS-3: {wbs3 ?? "All"}
-            </span>
-            <span className="rounded-full border px-3 py-1 text-xs">
-              WBS-4: {wbs4 ?? "All"}
-            </span>
+        {/* ===== Current filter (theme-based) ===== */}
+        <section className="rounded-2xl border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-4 shadow-[var(--shadow-card)]">
+          <div className={`text-xs ${muted}`}>Current filter</div>
+
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <span className={pill}>WBS-1: {wbs1 ?? "All"}</span>
+            <span className={pill}>WBS-2: {wbs2 ?? "All"}</span>
+            <span className={pill}>WBS-3: {wbs3 ?? "All"}</span>
+            <span className={pill}>WBS-4: {wbs4 ?? "All"}</span>
 
             <button
               type="button"
@@ -257,26 +276,32 @@ export default function BOQClient() {
                 setWbs3(null);
                 setWbs4(null);
               }}
-              className="ml-auto rounded-full border px-3 py-1 text-xs hover:bg-muted"
+              className={`ml-auto ${btnGhost}`}
             >
               Clear all
             </button>
           </div>
-        </div>
+
+          {/* tiny status row (optional, helps UX) */}
+          <div className={`mt-2 text-[11px] ${muted}`}>
+            Tip: เลือก dropdown เพื่อ cascade → กราฟจะ render
+            เฉพาะระดับที่เลือกแล้ว
+          </div>
+        </section>
 
         {/* ===== Row 1 ===== */}
         <div className="grid gap-4 lg:grid-cols-2">
           <PieAmountCard
-            title="WBS-1 Amount"
+            title="WBS-1"
             subtitle="Overview by WBS-1 (optional click)"
             data={pieWBS1}
             selected={wbs1}
-            onSelect={(name) => setWBS1(name)} // click slice works
+            onSelect={(name) => setWBS1(name)}
             onClear={() => setWBS1(null)}
           />
 
           <BarAmountCard
-            title="WBS-2 Amount"
+            title="WBS-2"
             subtitle={
               wbs1 ? `Filtered by WBS-1 = ${wbs1}` : "Select WBS-1 to render"
             }
@@ -286,7 +311,7 @@ export default function BOQClient() {
             disabledHint="เลือก WBS-1 ก่อน เพื่อแสดง Bar ของ WBS-2"
             topControl={
               <WBSSelect
-                label="WBS-1"
+                label="Select"
                 value={wbs1}
                 options={wbs1Options}
                 placeholder="(Choose WBS-1)"
@@ -301,7 +326,7 @@ export default function BOQClient() {
         {/* ===== Row 2 ===== */}
         <div className="grid gap-4 lg:grid-cols-2">
           <BarAmountCard
-            title="WBS-3 Amount"
+            title="WBS-3"
             subtitle={
               wbs2 ? `Filtered by WBS-2 = ${wbs2}` : "Select WBS-2 to render"
             }
@@ -311,7 +336,7 @@ export default function BOQClient() {
             disabledHint="เลือก WBS-1 และ WBS-2 ก่อน เพื่อแสดง Bar ของ WBS-3"
             topControl={
               <WBSSelect
-                label="WBS-2"
+                label="Select"
                 value={wbs2}
                 options={wbs2Options}
                 placeholder="(Choose WBS-2)"
@@ -323,7 +348,7 @@ export default function BOQClient() {
           />
 
           <BarAmountCard
-            title="WBS-4 Amount"
+            title="WBS-4"
             subtitle={
               wbs3 ? `Filtered by WBS-3 = ${wbs3}` : "Select WBS-3 to render"
             }
@@ -333,7 +358,7 @@ export default function BOQClient() {
             disabledHint="เลือก WBS-1, WBS-2, WBS-3 ก่อน เพื่อแสดง Bar ของ WBS-4"
             topControl={
               <WBSSelect
-                label="WBS-3"
+                label="Select"
                 value={wbs3}
                 options={wbs3Options}
                 placeholder="(Choose WBS-3)"
@@ -345,29 +370,27 @@ export default function BOQClient() {
           />
         </div>
 
-        {/* ===== Row 3 ===== */}
-        <section className="rounded-3xl border border-slate-200 bg-slate-100/60 p-4">
-          <div className="grid gap-4">
-            <BarAmountCard
-              title="Description Amount"
-              subtitle="Final level (render only when WBS-1..4 selected)"
-              data={barDesc}
-              color={C_DESC}
-              height={300}
-              disabled={!wbs1 || !wbs2 || !wbs3 || !wbs4}
-              disabledHint="เลือก WBS-1 → WBS-2 → WBS-3 → WBS-4 ก่อน เพื่อแสดง Description"
-              topControl={
-                <WBSSelect
-                  label="WBS-4"
-                  value={wbs4}
-                  options={wbs4Options}
-                  placeholder="(Choose WBS-4)"
-                  onChange={setWBS4}
-                  disabled={!wbs3 || isLoading || wbs4Options.length === 0}
-                />
-              }
-            />
-          </div>
+        {/* ===== Row 3 (surface panel) ===== */}
+        <section className="rounded-3xl border border-[color:var(--color-border)] bg-[color:var(--color-surface-2)] p-4 shadow-[var(--shadow-card)]">
+          <BarAmountCard
+            title="Description Amount"
+            subtitle="Final level (render only when WBS-1..4 selected)"
+            data={barDesc}
+            color={C_DESC}
+            height={300}
+            disabled={!wbs1 || !wbs2 || !wbs3 || !wbs4}
+            disabledHint="เลือก WBS-1 → WBS-2 → WBS-3 → WBS-4 ก่อน เพื่อแสดง Description"
+            topControl={
+              <WBSSelect
+                label="Select"
+                value={wbs4}
+                options={wbs4Options}
+                placeholder="(Choose WBS-4)"
+                onChange={setWBS4}
+                disabled={!wbs3 || isLoading || wbs4Options.length === 0}
+              />
+            }
+          />
         </section>
 
         {/* ===== Query Section ===== */}
