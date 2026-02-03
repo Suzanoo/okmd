@@ -1,36 +1,79 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# OKMD – Construction Management Dashboard
 
-## Getting Started
+Internal web application for **BOQ analysis, progress monitoring, and construction management**  
+for the **OKMD New Building Project**.
 
-First, run the development server:
+Built with **Next.js (App Router)** and designed for real-world use by  
+QS, Engineers, and Project Managers.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+---
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## ✨ Features
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 📦 BOQ Dashboard
+- Support **multiple buildings** (NKC1, NKC2)
+- Load BOQ directly from **embedded Excel files** (`/public/boq`)
+- Auto-detect valid sheets by required columns
+- Cascading visualization by:
+  - WBS-1 → WBS-2 → WBS-3 → WBS-4 → Description
+- Interactive charts (Pie / Bar) with lazy rendering for performance
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+### 🔍 BOQ Query Tool (Advanced)
+Designed as a **mini BOQ calculation workspace**
 
-To learn more about Next.js, take a look at the following resources:
+- Search by **Description** (Thai / English)
+- Match mode:
+  - `ALL` words
+  - `ANY` word
+- Highlight matched keywords
+- Pagination for large BOQ tables
+- Exclude rows with `Amount = 0` automatically
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+#### 🧮 Calculation-friendly UX
+- Select rows to remove (highlight only, not immediate delete)
+- Toggle selection (undo-friendly)
+- Apply removal in batch
+- Summary:
+  - **Sum Amount**
+  - **Sum Qty grouped by Unit** (prevents incorrect unit mixing)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+### 📊 Table Controls
+- Column-level filtering for:
+  - WBS-1
+  - WBS-2
+  - WBS-3
+  - WBS-4
+- Filter applies only to table (does not affect charts)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 📤 Export
+- Export current table state to:
+  - **CSV**
+  - **PDF**
+- Export respects:
+  - Search result
+  - Header filters
+  - Applied row removals
+  - Summary values
+
+---
+
+## 🧠 Design Principles
+
+- **Real construction workflow first**
+- No fake aggregation (e.g. Qty with mixed units)
+- Clear separation of:
+  - Exploration (Charts)
+  - Audit & Calculation (Query Table)
+- Undo-friendly and predictable UX
+- Performance-aware (lazy render, client-side staging)
+
+---
+
+## 🗂 Project Structure (Simplified)
+
