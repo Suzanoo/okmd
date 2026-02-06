@@ -50,6 +50,8 @@ const DEFAULT_PALETTE = [
   "hsl(280 87% 65%)", // pink/purple
 ];
 
+const EPS = 1e3;
+
 export default function BarAmountCard({
   title,
   subtitle,
@@ -113,7 +115,8 @@ export default function BarAmountCard({
 
                 <YAxis
                   scale="log"
-                  domain={["auto", "auto"]}
+                  domain={[EPS, "dataMax"]}
+                  allowDataOverflow
                   tick={{ fontSize: 11, fill: t.axisTick }}
                   axisLine={{ stroke: t.axisLine }}
                   tickLine={{ stroke: t.axisLine }}
@@ -138,6 +141,7 @@ export default function BarAmountCard({
 
                 <Bar
                   dataKey="value"
+                  minPointSize={2}
                   opacity={0.92}
                   fill={usePalette ? undefined : color}
                   onClick={(d: unknown) => {

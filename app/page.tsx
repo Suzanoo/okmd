@@ -48,7 +48,7 @@ export default function HomePage() {
     <main className="relative min-h-screen overflow-hidden">
       {/* BG Image */}
       <Image
-        src="/images/holi_fest.png"
+        src="/images/okmd-2.jpg"
         alt="OKMD project background"
         fill
         priority
@@ -56,18 +56,25 @@ export default function HomePage() {
       />
 
       {/* Overlays */}
-      {/* <div className="absolute inset-0 bg-black/55" />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/45 to-black/70" /> */}
+      <div className="absolute inset-0 bg-black/5" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/45 to-black/70" />
 
       {/* Content */}
       <div className="relative mx-auto flex min-h-screen max-w-6xl flex-col px-6 py-10">
         {/* Top bar */}
         <header className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur-md" />
+            <Image
+              src="https://www.okmd.or.th/images/template/logo_okmd.png"
+              alt="OKMD"
+              width={75}
+              height={75}
+              className="rounded-2xl bg-white/10 p-1 ring-1 ring-white/15 backdrop-blur-md object-contain"
+            />
+
             <div>
-              <p className="text-sm font-medium text-white/90">OKMD</p>
-              <p className="text-xs text-white/60">Construction Management</p>
+              {/* <p className="text-sm font-medium text-white/90">OKMD</p> */}
+              {/* <p className="text-xs text-white/60">Construction Management</p> */}
             </div>
           </div>
 
@@ -123,8 +130,15 @@ export default function HomePage() {
         </section>
 
         {/* Footer */}
-        <footer className="mt-auto pt-10 text-xs text-white/55">
-          © {new Date().getFullYear()} OKMD CM • Built with Next.js
+        <footer className="mt-auto pt-10 text-xs text-white/55 flex items-center">
+          <span>© {new Date().getFullYear()} OKMD CM • Built with Next.js</span>
+
+          <Link
+            href="/forms"
+            className="ml-auto text-sm text-white/55  hover:text-foreground underline underline-offset-4"
+          >
+            Project Forms
+          </Link>
         </footer>
       </div>
     </main>

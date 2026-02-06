@@ -10,6 +10,8 @@ import {
 import { highlightText } from "@/lib/boq/highlight";
 import { useThemeStore } from "@/lib/theme/store";
 
+import MultiSelectDropdown from "./controls/MultiSelectDropdown";
+
 const PAGE_SIZE = 20;
 
 type Props = {
@@ -23,10 +25,10 @@ type WorkingRow = BoqRow & {
 };
 
 type TableFilters = {
-  wbs1: string | null;
-  wbs2: string | null;
-  wbs3: string | null;
-  wbs4: string | null;
+  wbs1: string[]; // multi
+  wbs2: string[]; // multi
+  wbs3: string[]; // multi
+  wbs4: string[]; // multi
 };
 
 function makeRowId(r: BoqRow, i: number) {
@@ -54,6 +56,10 @@ function sumByUnit(rows: WorkingRow[]) {
   );
 }
 
+function getSelectedValues(e: React.ChangeEvent<HTMLSelectElement>): string[] {
+  return Array.from(e.target.selectedOptions).map((o) => o.value);
+}
+
 export default function QuerySection({ rows }: Props) {
   const isDark = useThemeStore((s) => s.theme) === "dark";
 
@@ -63,7 +69,7 @@ export default function QuerySection({ rows }: Props) {
   // Working table rows (after search; real data state)
   const [workingRows, setWorkingRows] = useState<WorkingRow[]>([]);
 
-  // NEW: pending removal (highlight only until Apply)
+  // pending removal (highlight only until Apply)
   const [pendingRemoveIds, setPendingRemoveIds] = useState<Set<string>>(
     () => new Set(),
   );
@@ -72,12 +78,12 @@ export default function QuerySection({ rows }: Props) {
   const [page, setPage] = useState(1);
   const [matchMode, setMatchMode] = useState<MatchMode>("all");
 
-  // Header filters (table-only)
+  // Header filters (table-only) — multi
   const [tf, setTf] = useState<TableFilters>({
-    wbs1: null,
-    wbs2: null,
-    wbs3: null,
-    wbs4: null,
+    wbs1: [],
+    wbs2: [],
+    wbs3: [],
+    wbs4: [],
   });
 
   const keywords = useMemo(
@@ -86,7 +92,8 @@ export default function QuerySection({ rows }: Props) {
   );
 
   function resetTableFilters() {
-    setTf({ wbs1: null, wbs2: null, wbs3: null, wbs4: null });
+    setTf({ wbs1: [], wbs2: [], wbs3: [], wbs4: [] });
+    setPage(1);
   }
 
   function clearPending() {
@@ -130,13 +137,13 @@ export default function QuerySection({ rows }: Props) {
     }
   }
 
-  // Apply header filters on workingRows
+  // Apply header filters on workingRows (multi)
   const filteredWorkingRows = useMemo(() => {
     return workingRows.filter((r) => {
-      if (tf.wbs1 && r.wbs1 !== tf.wbs1) return false;
-      if (tf.wbs2 && r.wbs2 !== tf.wbs2) return false;
-      if (tf.wbs3 && r.wbs3 !== tf.wbs3) return false;
-      if (tf.wbs4 && r.wbs4 !== tf.wbs4) return false;
+      if (tf.wbs1.length && !tf.wbs1.includes(r.wbs1)) return false;
+      if (tf.wbs2.length && !tf.wbs2.includes(r.wbs2)) return false;
+      if (tf.wbs3.length && !tf.wbs3.includes(r.wbs3)) return false;
+      if (tf.wbs4.length && !tf.wbs4.includes(r.wbs4)) return false;
       return true;
     });
   }, [workingRows, tf.wbs1, tf.wbs2, tf.wbs3, tf.wbs4]);
@@ -267,7 +274,7 @@ export default function QuerySection({ rows }: Props) {
     return filteredWorkingRows.slice(start, start + PAGE_SIZE);
   }, [filteredWorkingRows, page]);
 
-  // ===== Header filter options (from current workingRows; cascading-ish) =====
+  // ===== Options (cascading with multi-select) =====
   const wbs1Options = useMemo(() => {
     const s = new Set<string>();
     for (const r of workingRows) s.add(r.wbs1);
@@ -277,7 +284,7 @@ export default function QuerySection({ rows }: Props) {
   const wbs2Options = useMemo(() => {
     const s = new Set<string>();
     for (const r of workingRows) {
-      if (tf.wbs1 && r.wbs1 !== tf.wbs1) continue;
+      if (tf.wbs1.length && !tf.wbs1.includes(r.wbs1)) continue;
       s.add(r.wbs2);
     }
     return Array.from(s).filter(Boolean).sort();
@@ -286,8 +293,8 @@ export default function QuerySection({ rows }: Props) {
   const wbs3Options = useMemo(() => {
     const s = new Set<string>();
     for (const r of workingRows) {
-      if (tf.wbs1 && r.wbs1 !== tf.wbs1) continue;
-      if (tf.wbs2 && r.wbs2 !== tf.wbs2) continue;
+      if (tf.wbs1.length && !tf.wbs1.includes(r.wbs1)) continue;
+      if (tf.wbs2.length && !tf.wbs2.includes(r.wbs2)) continue;
       s.add(r.wbs3);
     }
     return Array.from(s).filter(Boolean).sort();
@@ -296,9 +303,9 @@ export default function QuerySection({ rows }: Props) {
   const wbs4Options = useMemo(() => {
     const s = new Set<string>();
     for (const r of workingRows) {
-      if (tf.wbs1 && r.wbs1 !== tf.wbs1) continue;
-      if (tf.wbs2 && r.wbs2 !== tf.wbs2) continue;
-      if (tf.wbs3 && r.wbs3 !== tf.wbs3) continue;
+      if (tf.wbs1.length && !tf.wbs1.includes(r.wbs1)) continue;
+      if (tf.wbs2.length && !tf.wbs2.includes(r.wbs2)) continue;
+      if (tf.wbs3.length && !tf.wbs3.includes(r.wbs3)) continue;
       s.add(r.wbs4);
     }
     return Array.from(s).filter(Boolean).sort();
@@ -358,8 +365,9 @@ export default function QuerySection({ rows }: Props) {
       ? "[&>mark]:bg-amber-400/25 [&>mark]:text-amber-200"
       : "[&>mark]:bg-yellow-200 [&>mark]:text-slate-900");
 
+  // multi-select UI (taller)
   const filterSelect =
-    "mt-1 h-7 w-full rounded-lg border border-[color:var(--color-border)] bg-[color:var(--color-surface)] " +
+    "mt-1 h-20 w-full rounded-lg border border-[color:var(--color-border)] bg-[color:var(--color-surface)] " +
     "px-2 text-[11px] text-[color:var(--color-foreground)] outline-none " +
     "focus:ring-2 focus:ring-[color:var(--color-accent)]/25";
 
@@ -371,8 +379,8 @@ export default function QuerySection({ rows }: Props) {
         <div>
           <h2 className={`text-lg font-semibold ${fg}`}>BOQ Query</h2>
           <div className={`mt-1 text-xs ${muted}`}>
-            • ค้นหา Description • เลือกแถวที่จะตัดออก (highlight) • กด Apply
-            ทีเดียว
+            • ค้นหา Description • WBS filter เลือกได้หลายค่า (กด cmd/ctrl) •
+            เลือกแถวตัดออก (highlight) • Apply ทีเดียว
           </div>
         </div>
 
@@ -434,7 +442,6 @@ export default function QuerySection({ rows }: Props) {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              {/* pending actions */}
               <button
                 type="button"
                 onClick={applyPendingRemovals}
@@ -446,7 +453,7 @@ export default function QuerySection({ rows }: Props) {
 
               <button
                 type="button"
-                onClick={clearPending}
+                onClick={() => setPendingRemoveIds(new Set())}
                 disabled={pendingCountInFiltered === 0}
                 className={btnGhost}
               >
@@ -481,92 +488,69 @@ export default function QuerySection({ rows }: Props) {
               <thead className={thead}>
                 <tr>
                   <th className={th}>
-                    WBS-1
-                    <select
-                      className={filterSelect}
-                      value={tf.wbs1 ?? ""}
-                      onChange={(e) => {
-                        const v = e.target.value || null;
+                    <MultiSelectDropdown
+                      label="WBS-1"
+                      options={wbs1Options.map((v) => ({ value: v }))}
+                      value={tf.wbs1}
+                      onChange={(next) => {
                         setTf((prev) => ({
                           ...prev,
-                          wbs1: v,
-                          wbs2: null,
-                          wbs3: null,
-                          wbs4: null,
+                          wbs1: next,
+                          wbs2: [],
+                          wbs3: [],
+                          wbs4: [],
                         }));
-                        // keep page stable but clamp if needed
-                        setPage((p) => Math.max(1, p));
+                        setPage(1);
                       }}
-                    >
-                      <option value="">All</option>
-                      {wbs1Options.map((v) => (
-                        <option key={v} value={v}>
-                          {v}
-                        </option>
-                      ))}
-                    </select>
+                      placeholder="All"
+                    />
                   </th>
 
                   <th className={th}>
-                    WBS-2
-                    <select
-                      className={filterSelect}
-                      value={tf.wbs2 ?? ""}
-                      onChange={(e) => {
-                        const v = e.target.value || null;
+                    <MultiSelectDropdown
+                      label="WBS-2"
+                      options={wbs2Options.map((v) => ({ value: v }))}
+                      value={tf.wbs2}
+                      onChange={(next) => {
                         setTf((prev) => ({
                           ...prev,
-                          wbs2: v,
-                          wbs3: null,
-                          wbs4: null,
+                          wbs2: next,
+                          wbs3: [],
+                          wbs4: [],
                         }));
+                        setPage(1);
                       }}
-                    >
-                      <option value="">All</option>
-                      {wbs2Options.map((v) => (
-                        <option key={v} value={v}>
-                          {v}
-                        </option>
-                      ))}
-                    </select>
+                      placeholder="All"
+                      disabled={wbs2Options.length === 0}
+                    />
                   </th>
 
                   <th className={th}>
-                    WBS-3
-                    <select
-                      className={filterSelect}
-                      value={tf.wbs3 ?? ""}
-                      onChange={(e) => {
-                        const v = e.target.value || null;
-                        setTf((prev) => ({ ...prev, wbs3: v, wbs4: null }));
+                    <MultiSelectDropdown
+                      label="WBS-3"
+                      options={wbs3Options.map((v) => ({ value: v }))}
+                      value={tf.wbs3}
+                      onChange={(next) => {
+                        setTf((prev) => ({ ...prev, wbs3: next, wbs4: [] }));
+                        setPage(1);
                       }}
-                    >
-                      <option value="">All</option>
-                      {wbs3Options.map((v) => (
-                        <option key={v} value={v}>
-                          {v}
-                        </option>
-                      ))}
-                    </select>
+                      placeholder="All"
+                      disabled={wbs3Options.length === 0}
+                    />
                   </th>
 
                   <th className={th}>
-                    WBS-4
-                    <select
-                      className={filterSelect}
-                      value={tf.wbs4 ?? ""}
-                      onChange={(e) => {
-                        const v = e.target.value || null;
-                        setTf((prev) => ({ ...prev, wbs4: v }));
+                    <MultiSelectDropdown
+                      label="WBS-4"
+                      options={wbs4Options.map((v) => ({ value: v }))}
+                      value={tf.wbs4}
+                      onChange={(next) => {
+                        setTf((prev) => ({ ...prev, wbs4: next }));
+                        setPage(1);
                       }}
-                    >
-                      <option value="">All</option>
-                      {wbs4Options.map((v) => (
-                        <option key={v} value={v}>
-                          {v}
-                        </option>
-                      ))}
-                    </select>
+                      placeholder="All"
+                      disabled={wbs4Options.length === 0}
+                    />
                   </th>
 
                   <th className={th}>Description</th>
@@ -613,7 +597,6 @@ export default function QuerySection({ rows }: Props) {
                         {(r.amount ?? 0).toLocaleString()}
                       </td>
 
-                      {/* staging toggle */}
                       <td className="p-2 text-right">
                         <button
                           type="button"
@@ -636,7 +619,6 @@ export default function QuerySection({ rows }: Props) {
                 })}
               </tbody>
 
-              {/* Footer summary (applied state only) */}
               <tfoot>
                 <tr className="border-t border-[color:var(--color-border)]">
                   <td className="p-3 text-xs" colSpan={6}>
@@ -651,13 +633,6 @@ export default function QuerySection({ rows }: Props) {
                           : "-"}
                       </span>
                     </div>
-                    {pendingCountInFiltered > 0 ? (
-                      <div className={`mt-1 text-[11px] ${muted}`}>
-                        * มี{" "}
-                        <span className={fg}>{pendingCountInFiltered}</span>{" "}
-                        แถวที่เลือกไว้ (ยังไม่ถูกตัดออกจนกด Apply)
-                      </div>
-                    ) : null}
                   </td>
 
                   <td className="p-3 text-xs text-right" colSpan={4}>
@@ -673,7 +648,6 @@ export default function QuerySection({ rows }: Props) {
             </table>
           </div>
 
-          {/* Pagination */}
           <div className="flex items-center justify-between text-xs">
             <div className={muted}>
               Page <span className={`${fg} font-medium`}>{page}</span> /{" "}
