@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import AppHeader from "./_components/AppHeader";
 import ThemeProvider from "./_providers/ThemeProvider";
 import "./globals.css";
 
@@ -31,7 +32,10 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <AppHeader />
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

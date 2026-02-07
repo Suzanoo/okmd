@@ -198,10 +198,6 @@ export default function BOQClient() {
   return (
     <div className="min-h-screen bg-[color:var(--color-background)]">
       <div className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
-        <div className="flex justify-end ">
-          <ThemeToggle />
-        </div>
-
         {/* ===== Header (theme-based) ===== */}
         <header className={`${cardBase} ${cardPad}`}>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">

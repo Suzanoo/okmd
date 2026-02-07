@@ -61,33 +61,6 @@ export default function HomePage() {
 
       {/* Content */}
       <div className="relative mx-auto flex min-h-screen max-w-6xl flex-col px-6 py-10">
-        {/* Top bar */}
-        <header className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Image
-              src="https://www.okmd.or.th/images/template/logo_okmd.png"
-              alt="OKMD"
-              width={75}
-              height={75}
-              className="rounded-2xl bg-white/10 p-1 ring-1 ring-white/15 backdrop-blur-md object-contain"
-            />
-
-            <div>
-              {/* <p className="text-sm font-medium text-white/90">OKMD</p> */}
-              {/* <p className="text-xs text-white/60">Construction Management</p> */}
-            </div>
-          </div>
-
-          <a
-            href="https://www.okmd.or.th/"
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-white/90 backdrop-blur-md transition hover:bg-white/15"
-          >
-            OKMD Website ↗
-          </a>
-        </header>
-
         {/* Hero */}
         <section className="mt-16">
           <p className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-white/80 backdrop-blur-md">
@@ -121,10 +94,10 @@ export default function HomePage() {
               badge="Schedule"
             />
             <EntryCard
-              title="Report"
-              description="Executive overview • key issues • export-ready summaries"
-              href="/report"
-              badge="KPI"
+              title="Media"
+              description="Project Visual Records • Video timelapses • Photo logs"
+              href="/media"
+              badge="MEDIA"
             />
           </div>
         </section>
