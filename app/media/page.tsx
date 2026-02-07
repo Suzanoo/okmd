@@ -12,7 +12,7 @@ export default function MediaPage() {
     <main className="mx-auto w-full max-w-6xl px-4 py-8">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Media</h1>
+          <h1 className="text-2xl font-semibold">Media 🎥</h1>
           <p className="mt-2 text-muted-foreground">
             ลิงก์วิดีโอ timelapse / progress ของโครงการ (YouTube)
           </p>
@@ -30,7 +30,9 @@ export default function MediaPage() {
 
       <section className="mt-6 grid gap-4">
         <div className="rounded-xl border bg-card p-4">
-          <div className="text-sm font-medium">OKMD Timelapse Playlist</div>
+          <div className="text-sm font-medium">
+            OKMD Video Timelapse Playlist
+          </div>
           <div className="mt-1 text-xs text-muted-foreground">
             YouTube Playlist
           </div>

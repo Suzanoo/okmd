@@ -95,7 +95,7 @@ export default function HomePage() {
             />
             <EntryCard
               title="Media"
-              description="Project Visual Records • Video timelapses • Photo logs"
+              description="Project Visual Records • Video timelapse • Photo logs"
               href="/media"
               badge="MEDIA"
             />
