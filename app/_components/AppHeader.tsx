@@ -166,7 +166,7 @@ export default function AppHeader() {
           type="button"
           onClick={() => setOpen(false)}
           className={[
-            "fixed inset-0 z-40 bg-black/45 backdrop-blur-[2px] transition-opacity duration-200",
+            "fixed inset-0 z-40 bg-black/60 backdrop-blur-[3px] transition-opacity duration-200",
             open ? "opacity-100" : "opacity-0",
           ].join(" ")}
           aria-label="Close menu overlay"
@@ -180,8 +180,11 @@ export default function AppHeader() {
           aria-modal="true"
           className={[
             "fixed right-0 top-0 z-50 h-dvh w-[86vw] max-w-[360px]",
-            "border-l border-white/10 bg-black/45 backdrop-blur-md shadow-2xl",
-            // “spring-ish” feel via timing function + slightly longer duration
+            // cinematic glass: gradient + blur + subtle noise-like feel via opacity layers
+            "bg-linear-to-b from-white/[0.10] via-black/[0.55] to-black/[0.72]",
+            "backdrop-blur-xl",
+            "border-l border-white/15 ring-1 ring-white/10",
+            "shadow-[0_24px_80px_rgba(0,0,0,0.55)]",
             "transition-transform duration-300 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)]",
             open ? "translate-x-0" : "translate-x-full",
           ].join(" ")}
@@ -215,7 +218,7 @@ export default function AppHeader() {
           </div>
 
           {/* Project switcher (future-ready) */}
-          <div className="px-4 pt-4">
+          {/* <div className="px-4 pt-4">
             <div className="text-[11px] font-medium text-white/60">Project</div>
             <div className="relative mt-2">
               <select
@@ -235,7 +238,7 @@ export default function AppHeader() {
             <div className="mt-2 text-[11px] text-white/45">
               (รองรับหลายโครงการในอนาคต)
             </div>
-          </div>
+          </div> */}
 
           {/* Drawer content */}
           <nav className="px-3 py-4">
@@ -250,9 +253,10 @@ export default function AppHeader() {
                       ref={idx === 0 ? firstLinkRef : undefined}
                       className={[
                         "flex items-center justify-between rounded-2xl px-4 py-3 text-sm font-medium transition",
+                        "border border-white/10 bg-white/[0.03]",
                         "focus:outline-none focus:ring-2 focus:ring-white/20",
                         active
-                          ? "bg-white/10 text-white"
+                          ? "bg-white/14 text-white"
                           : "text-white/90 hover:bg-white/10 hover:text-white",
                       ].join(" ")}
                     >
