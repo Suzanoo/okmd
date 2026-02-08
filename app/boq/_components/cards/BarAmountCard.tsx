@@ -70,6 +70,8 @@ export default function BarAmountCard({
   const isDark = useThemeStore((s) => s.theme) === "dark";
   const t = getChartTheme(isDark);
 
+  const total = data.reduce((acc, d) => acc + (d.value ?? 0), 0);
+
   return (
     <ChartCardShell title={title} subtitle={subtitle} right={topControl}>
       {disabled ? (
@@ -94,7 +96,7 @@ export default function BarAmountCard({
             </div>
           ) : null}
 
-          <div style={{ height }}>
+          <div className="relative" style={{ height }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={data}
@@ -163,6 +165,16 @@ export default function BarAmountCard({
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
+            {/* Total amount legend */}
+            <div
+              className="pointer-events-none absolute bottom-2 right-3 text-xs font-medium"
+              style={{ color: t.tooltipMuted }}
+            >
+              Total:&nbsp;
+              <span className="font-medium" style={{ color: t.tooltipText }}>
+                {formatMoney(total)}
+              </span>
+            </div>
           </div>
 
           <div className="mt-2 text-xs" style={{ color: t.tooltipMuted }}>
