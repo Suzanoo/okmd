@@ -290,131 +290,164 @@ export default function QuerySection({ rows }: Props) {
    * - registerThaiFont เพื่อให้ภาษาไทยไม่เพี้ยน
    * - auto-fit width เพื่อไม่ให้ตารางล้นหน้า
    */
+  const [exporting, setExporting] = useState(false);
+
+  const MAX_EXPORT_ROWS = 2000;
+
   const onExportPDF = useCallback(async () => {
+    if (exporting) return;
+
     const data = filteredWorkingRows;
 
-    const [{ jsPDF }, { default: autoTable }] = await Promise.all([
-      import("jspdf"),
-      import("jspdf-autotable"),
-    ]);
-    const { registerThaiFont } = await import("@/lib/pdf/registerThaiFont");
+    // กันเคสข้อมูลใหญ่จนทำให้ Chrome หน่วง/ค้าง
+    if (data.length > MAX_EXPORT_ROWS) {
+      alert(
+        `ข้อมูล ${data.length.toLocaleString()} แถว เยอะเกินไป\n` +
+          `กรุณา filter ให้เหลือไม่เกิน ${MAX_EXPORT_ROWS.toLocaleString()} แถวก่อน export`,
+      );
+      return;
+    }
 
-    const doc = new jsPDF({
-      orientation: "landscape",
-      unit: "pt",
-      format: "a4",
-    });
-    await registerThaiFont(doc);
+    setExporting(true);
+    try {
+      // ให้ browser render ปุ่ม "Exporting..." ก่อนเริ่มทำงานหนัก
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => resolve()),
+      );
 
-    const marginX = 40;
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const available = pageWidth - marginX * 2;
+      // ---- Lazy imports (ลด bundle) ----
+      const [{ jsPDF }, { default: autoTable }] = await Promise.all([
+        import("jspdf"),
+        import("jspdf-autotable"),
+      ]);
+      const { registerThaiFont } = await import("@/lib/pdf/registerThaiFont");
 
-    const w = { wbs: 42, unit: 40, qty: 48, money: 62 };
-    const fixed = w.wbs * 4 + w.unit + w.qty + w.money * 3;
-    const descW = Math.max(180, available - fixed);
+      // ---- Doc setup ----
+      const doc = new jsPDF({
+        orientation: "landscape",
+        unit: "pt",
+        format: "a4",
+      });
+      await registerThaiFont(doc);
 
-    doc.setFont("Sarabun", "normal");
-    doc.setFontSize(14);
-    doc.text(
-      `BOQ Query Result (${data.length.toLocaleString()} rows)`,
-      marginX,
-      32,
-    );
+      const marginX = 40;
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const available = pageWidth - marginX * 2;
 
-    doc.setFontSize(9);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, marginX, 46);
+      // ---- Column width plan (auto-fit Description) ----
+      const w = { wbs: 42, unit: 40, qty: 48, money: 62 };
+      const fixed = w.wbs * 4 + w.unit + w.qty + w.money * 3;
+      const descW = Math.max(180, available - fixed);
 
-    const head = [
-      [
-        "WBS-1",
-        "WBS-2",
-        "WBS-3",
-        "WBS-4",
-        "Description",
-        "Unit",
-        "Qty",
-        "Material",
-        "Labor",
-        "Amount",
-      ],
-    ];
+      // ---- Header text ----
+      doc.setFont("Sarabun", "normal");
+      doc.setFontSize(14);
+      doc.text(
+        `BOQ Query Result (${data.length.toLocaleString()} rows)`,
+        marginX,
+        32,
+      );
 
-    const body = data.map((r) => [
-      r.wbs1 ?? "",
-      r.wbs2 ?? "",
-      r.wbs3 ?? "",
-      r.wbs4 ?? "",
-      r.description ?? "",
-      normalizeUnit(r.unit),
-      fmtNum(safeNum(r.qty)),
-      fmtNum(safeNum(r.material)),
-      fmtNum(safeNum(r.labor)),
-      fmtNum(safeNum(r.amount)),
-    ]);
+      doc.setFontSize(9);
+      doc.text(`Generated: ${new Date().toLocaleString()}`, marginX, 46);
 
-    autoTable(doc, {
-      head,
-      body,
-      startY: 52,
-      margin: { left: marginX, right: marginX },
-      tableWidth: available,
-      styles: {
-        font: "Sarabun",
-        fontStyle: "normal",
-        fontSize: 8,
-        cellPadding: 3,
-        overflow: "linebreak",
-        valign: "top",
-      },
-      headStyles: {
-        font: "Sarabun",
-        fontStyle: "bold",
-        fillColor: [230, 230, 230],
-        textColor: [30, 30, 30],
-      },
-      columnStyles: {
-        0: { cellWidth: w.wbs },
-        1: { cellWidth: w.wbs },
-        2: { cellWidth: w.wbs },
-        3: { cellWidth: w.wbs },
-        4: { cellWidth: descW },
-        5: { cellWidth: w.unit },
-        6: { halign: "right", cellWidth: w.qty },
-        7: { halign: "right", cellWidth: w.money },
-        8: { halign: "right", cellWidth: w.money },
-        9: { halign: "right", cellWidth: w.money },
-      },
-      didDrawPage: () => {
-        const pageNo = doc.getNumberOfPages();
-        doc.setFontSize(9);
-        doc.text(
-          `Page ${pageNo}`,
-          pageWidth - marginX,
-          doc.internal.pageSize.getHeight() - 18,
-          {
+      // ---- Table data ----
+      const head = [
+        [
+          "WBS-1",
+          "WBS-2",
+          "WBS-3",
+          "WBS-4",
+          "Description",
+          "Unit",
+          "Qty",
+          "Material",
+          "Labor",
+          "Amount",
+        ],
+      ];
+
+      const body = data.map((r) => [
+        r.wbs1 ?? "",
+        r.wbs2 ?? "",
+        r.wbs3 ?? "",
+        r.wbs4 ?? "",
+        r.description ?? "",
+        normalizeUnit(r.unit),
+        fmtNum(safeNum(r.qty)),
+        fmtNum(safeNum(r.material)),
+        fmtNum(safeNum(r.labor)),
+        fmtNum(safeNum(r.amount)),
+      ]);
+
+      // ---- Render table ----
+      autoTable(doc, {
+        head,
+        body,
+        startY: 52,
+        margin: { left: marginX, right: marginX },
+        tableWidth: available,
+
+        styles: {
+          font: "Sarabun",
+          fontStyle: "normal",
+          fontSize: 8,
+          cellPadding: 3,
+          overflow: "ellipsize", // เร็วกว่า linebreak มาก
+          valign: "top",
+        },
+
+        headStyles: {
+          font: "Sarabun",
+          fontStyle: "bold",
+          fillColor: [230, 230, 230],
+          textColor: [30, 30, 30],
+        },
+
+        columnStyles: {
+          0: { cellWidth: w.wbs },
+          1: { cellWidth: w.wbs },
+          2: { cellWidth: w.wbs },
+          3: { cellWidth: w.wbs },
+          4: { cellWidth: descW, overflow: "ellipsize" },
+          5: { cellWidth: w.unit },
+          6: { halign: "right", cellWidth: w.qty },
+          7: { halign: "right", cellWidth: w.money },
+          8: { halign: "right", cellWidth: w.money },
+          9: { halign: "right", cellWidth: w.money },
+        },
+
+        didDrawPage: () => {
+          const pageNo = doc.getNumberOfPages();
+          doc.setFontSize(9);
+          doc.text(`Page ${pageNo}`, pageWidth - marginX, pageHeight - 18, {
             align: "right",
-          },
-        );
-      },
-    });
+          });
+        },
+      });
 
-    const sum = data.reduce((acc, r) => acc + safeNum(r.amount), 0);
-    const qtyUnits = sumByUnit(data);
+      // ---- Summary (ใต้ตาราง) ----
+      const sum = data.reduce((acc, r) => acc + safeNum(r.amount), 0);
+      const qtyUnits = sumByUnit(data);
 
-    const last = doc as unknown as { lastAutoTable?: { finalY?: number } };
-    const y = (last.lastAutoTable?.finalY ?? 740) + 18;
+      const last = doc as unknown as { lastAutoTable?: { finalY?: number } };
+      const y = (last.lastAutoTable?.finalY ?? pageHeight - 80) + 18;
 
-    doc.setFontSize(10);
-    doc.text(`Sum Amount: ${fmtNum(sum)}`, marginX, y);
+      doc.setFontSize(10);
+      doc.text(`Sum Amount: ${fmtNum(sum)}`, marginX, y);
 
-    const qtyText = qtyUnits
-      .map((x) => `${fmtNum(x.qty)} ${x.unit}`)
-      .join(" | ");
-    doc.text(`Sum Qty (by Unit): ${qtyText || "-"}`, marginX, y + 14);
+      const qtyText = qtyUnits
+        .map((x) => `${fmtNum(x.qty)} ${x.unit}`)
+        .join(" | ");
+      doc.text(`Sum Qty (by Unit): ${qtyText || "-"}`, marginX, y + 14);
 
-    doc.save("boq_query_result.pdf");
-  }, [filteredWorkingRows]);
+      // ---- Save ----
+      doc.save("boq_query_result.pdf");
+    } finally {
+      setExporting(false);
+    }
+  }, [exporting, filteredWorkingRows]);
 
   // =========================
   // 5) FILTER OPTIONS (for dropdowns)
@@ -617,9 +650,15 @@ export default function QuerySection({ rows }: Props) {
               <button type="button" onClick={resetFilters} className={btnGhost}>
                 Clear filters
               </button>
-              <button type="button" onClick={onExportPDF} className={btnGhost}>
-                Export PDF
+              <button
+                type="button"
+                onClick={onExportPDF}
+                className={btnGhost}
+                disabled={exporting}
+              >
+                {exporting ? "Exporting..." : "Export PDF"}
               </button>
+
               <button
                 type="button"
                 onClick={onDownloadCSV}

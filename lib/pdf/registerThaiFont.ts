@@ -1,5 +1,7 @@
 import type { jsPDF } from "jspdf";
 
+let cached: null | { reg: string; bold: string } = null;
+
 function arrayBufferToBase64(buffer: ArrayBuffer) {
   let binary = "";
   const bytes = new Uint8Array(buffer);
@@ -10,19 +12,29 @@ function arrayBufferToBase64(buffer: ArrayBuffer) {
   return btoa(binary);
 }
 
-export async function registerThaiFont(doc: jsPDF) {
+async function loadFontsOnce() {
+  if (cached) return cached;
+
   const [regBuf, boldBuf] = await Promise.all([
-    fetch("/fonts/Sarabun-Regular.ttf").then((r) => r.arrayBuffer()),
-    fetch("/fonts/Sarabun-Bold.ttf").then((r) => r.arrayBuffer()),
+    fetch("/fonts/Sarabun-Regular.ttf", { cache: "force-cache" }).then((r) => r.arrayBuffer()),
+    fetch("/fonts/Sarabun-Bold.ttf", { cache: "force-cache" }).then((r) => r.arrayBuffer()),
   ]);
 
-  const regBase64 = arrayBufferToBase64(regBuf);
-  const boldBase64 = arrayBufferToBase64(boldBuf);
+  cached = {
+    reg: arrayBufferToBase64(regBuf),
+    bold: arrayBufferToBase64(boldBuf),
+  };
+  return cached;
+}
 
-  doc.addFileToVFS("Sarabun-Regular.ttf", regBase64);
+/** Register Thai fonts into the given jsPDF doc (cached load). */
+export async function registerThaiFont(doc: jsPDF) {
+  const { reg, bold } = await loadFontsOnce();
+
+  doc.addFileToVFS("Sarabun-Regular.ttf", reg);
   doc.addFont("Sarabun-Regular.ttf", "Sarabun", "normal");
 
-  doc.addFileToVFS("Sarabun-Bold.ttf", boldBase64);
+  doc.addFileToVFS("Sarabun-Bold.ttf", bold);
   doc.addFont("Sarabun-Bold.ttf", "Sarabun", "bold");
 
   doc.setFont("Sarabun", "normal");
