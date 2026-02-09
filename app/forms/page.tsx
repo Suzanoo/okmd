@@ -4,7 +4,7 @@ export default function FormsPage() {
     <main className="mx-auto w-full max-w-6xl px-4 py-8">
       <h1 className="text-2xl font-semibold">Project Forms</h1>
       <p className="mt-2 text-muted-foreground">
-        หน้านี้สำหรับกรอกแบบฟอร์มต่างๆ ของโครงการ
+        หน้านี้สำหรับดาวน์โหลดแบบฟอร์มต่างๆ ของโครงการ
       </p>
     </main>
   );

@@ -10,10 +10,9 @@ import ThemeToggle from "./ThemeToggle";
 
 const nav = [
   { href: "/", label: "HOME" },
-  { href: "/boq", label: "BOQ" },
-  { href: "/media", label: "MEDIA" },
-  { href: "/progress", label: "PROGRESS" },
-  { href: "/report", label: "REPORT" },
+  { href: "/about", label: "ABOUT" },
+  { href: "/activities", label: "ACTIVITIES" },
+  { href: "/contact", label: "CONTACT US" },
 ];
 
 const PROJECTS = [

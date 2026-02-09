@@ -76,26 +76,36 @@ export function parseBoqRowsFromBuffer(
     if (!Array.isArray(r)) continue;
 
     const wbs1 = toText(r[idxMap["WBS-1"]]);
-    const wbs2 = toText(r[idxMap["WBS-2"]]);
-    const wbs3 = toText(r[idxMap["WBS-3"]]);
-    const wbs4 = toText(r[idxMap["WBS-4"]]);
-    const description = toText(r[idxMap["Description"]]);
+const wbs2 = toText(r[idxMap["WBS-2"]]);
+const wbs3 = toText(r[idxMap["WBS-3"]]);
+const wbs4 = toText(r[idxMap["WBS-4"]]);
+const description = toText(r[idxMap["Description"]]);
 
-    // ข้ามแถวว่างหลัก ๆ
-    if (!wbs1 && !wbs2 && !wbs3 && !wbs4 && !description) continue;
+// parse amount ก่อนเพื่อใช้ตัดแถว
+const amount = toNumber(r[idxMap["Amount"]]);
 
-    out.push({
-      wbs1,
-      wbs2,
-      wbs3,
-      wbs4,
-      description,
-      unit: toText(r[idxMap["Unit"]]),
-      qty: toNumber(r[idxMap["Qty"]]),
-      material: toNumber(r[idxMap["Material"]]),
-      labor: toNumber(r[idxMap["Labor"]]),
-      amount: toNumber(r[idxMap["Amount"]]),
-    });
+// ข้ามแถวว่างหลัก ๆ (เหมือนเดิม)
+if (!wbs1 && !wbs2 && !wbs3 && !wbs4 && !description) continue;
+
+// ✅ NEW RULE 1: Amount = 0 หรือไม่มีค่า -> ตัดออก
+if (amount <= 0) continue;
+
+// ✅ NEW RULE 2: Amount > 0 แต่ description ว่าง หรือ "0" -> ตัดออก
+if (!description || description === "0") continue;
+
+out.push({
+  wbs1,
+  wbs2,
+  wbs3,
+  wbs4,
+  description,
+  unit: toText(r[idxMap["Unit"]]),
+  qty: toNumber(r[idxMap["Qty"]]),
+  material: toNumber(r[idxMap["Material"]]),
+  labor: toNumber(r[idxMap["Labor"]]),
+  amount,
+});
+
   }
 
   return out;

@@ -22,8 +22,8 @@ export default function BuildingFilePicker({ building, onChange }: Props) {
         value={building}
         onChange={(e) => onChange(e.target.value as BoqBuilding)}
       >
-        <option value="NKC1">NKC1 — BOQ_NKC1.xlsx</option>
-        <option value="NKC2">NKC2 — BOQ_NKC2.xlsx</option>
+        <option value="NKC1">NKC1</option>
+        <option value="NKC2">NKC2</option>
       </select>
 
       {/* Optional helper line

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { ExternalLink } from "lucide-react";
 
 type EntryCardProps = {
   title: string;
@@ -68,10 +69,10 @@ export default function HomePage() {
           </p>
 
           <h1 className="mt-4 max-w-3xl text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-            OKMD – New Building
-            <span className="block text-white/70">
+            OKMD – Next ⤴️
+            {/* <span className="block text-white/70">
               Construction Management App
-            </span>
+            </span> */}
           </h1>
 
           {/* <p className="mt-4 max-w-2xl text-base leading-relaxed text-white/75">
