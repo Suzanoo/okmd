@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import type { BoqRow } from "@/lib/boq/types";
 import {
   buildDescriptionRegex,
@@ -12,25 +12,40 @@ import { useThemeStore } from "@/lib/theme/store";
 
 import MultiSelectDropdown from "./controls/MultiSelectDropdown";
 
+/** จำนวนแถวต่อหน้าในตารางผลลัพธ์ */
 const PAGE_SIZE = 20;
 
 type Props = {
+  /** BOQ rows ทั้งหมด (source of truth) */
   rows: BoqRow[];
 };
 
 type MatchMode = "all" | "any";
 
+/**
+ * WorkingRow = row หลังจาก search แล้ว + เพิ่ม _id สำหรับ:
+ * - key ใน React table
+ * - staging (pending remove) แบบปลอดภัย
+ */
 type WorkingRow = BoqRow & {
-  _id: string; // for staging/remove safely
+  _id: string;
 };
 
+/**
+ * Filters ที่ใช้เฉพาะ "หัวตาราง" (หลังจาก search แล้ว)
+ * เป็น multi-select ทั้งหมด
+ */
 type TableFilters = {
-  wbs1: string[]; // multi
-  wbs2: string[]; // multi
-  wbs3: string[]; // multi
-  wbs4: string[]; // multi
+  wbs1: string[];
+  wbs2: string[];
+  wbs3: string[];
+  wbs4: string[];
+  unit: string[]; // ✅ เพิ่ม Unit filter
 };
 
+type QtyByUnit = { unit: string; qty: number };
+
+/** สร้าง id แบบ deterministic เพื่อให้ toggle/ลบได้ตรงตัว */
 function makeRowId(r: BoqRow, i: number) {
   return [
     r.wbs1,
@@ -45,110 +60,99 @@ function makeRowId(r: BoqRow, i: number) {
   ].join("||");
 }
 
-function sumByUnit(rows: WorkingRow[]) {
+/** แปลง number ที่อาจเป็น null/undefined ให้ปลอดภัย */
+const safeNum = (v: number | null | undefined) =>
+  typeof v === "number" ? v : 0;
+
+/** format จำนวนเต็ม (ตารางเว็บ) */
+const fmtInt = (n: number) =>
+  n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+
+/** format ทศนิยม 2 ตำแหน่ง (PDF/summary) */
+const fmtNum = (n: number) =>
+  n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+
+/** normalize unit เพื่อให้ filter/summary สม่ำเสมอ */
+const normalizeUnit = (u: string | null | undefined) => (u ?? "").trim() || "-";
+
+/** รวม Qty ตาม unit สำหรับ summary */
+function sumByUnit(rows: WorkingRow[]): QtyByUnit[] {
   const m = new Map<string, number>();
   for (const r of rows) {
-    const u = (r.unit ?? "").trim() || "-";
-    m.set(u, (m.get(u) ?? 0) + (r.qty ?? 0));
+    const u = normalizeUnit(r.unit);
+    m.set(u, (m.get(u) ?? 0) + safeNum(r.qty));
   }
   return Array.from(m, ([unit, qty]) => ({ unit, qty })).sort((a, b) =>
     a.unit.localeCompare(b.unit),
   );
 }
 
-function getSelectedValues(e: React.ChangeEvent<HTMLSelectElement>): string[] {
-  return Array.from(e.target.selectedOptions).map((o) => o.value);
-}
-
 export default function QuerySection({ rows }: Props) {
   const isDark = useThemeStore((s) => s.theme) === "dark";
 
-  const [input, setInput] = useState("");
-  const [result, setResult] = useState<BoqRow[]>([]);
+  // =========================
+  // 1) UI STATE (source-of-truth)
+  // =========================
 
-  // Working table rows (after search; real data state)
+  /** input ข้อความสำหรับค้นหา Description */
+  const [input, setInput] = useState("");
+
+  /** workingRows = ผล search แล้ว (และหลัง Apply removal แล้ว) */
   const [workingRows, setWorkingRows] = useState<WorkingRow[]>([]);
 
-  // pending removal (highlight only until Apply)
+  /** staging สำหรับ "pending remove" (กด x แล้ว highlight ไว้ก่อน) */
   const [pendingRemoveIds, setPendingRemoveIds] = useState<Set<string>>(
     () => new Set(),
   );
 
+  /** ข้อความ error สำหรับ regex/ค้นหา */
   const [error, setError] = useState("");
+
+  /** pagination */
   const [page, setPage] = useState(1);
+
+  /** matchMode: all words vs any word */
   const [matchMode, setMatchMode] = useState<MatchMode>("all");
 
-  // Header filters (table-only) — multi
+  /** table header filters */
   const [tf, setTf] = useState<TableFilters>({
     wbs1: [],
     wbs2: [],
     wbs3: [],
     wbs4: [],
+    unit: [], // ✅
   });
 
+  // =========================
+  // 2) DERIVED DATA (computed)
+  // =========================
+
+  /** keywords สำหรับ highlight ใน Description (split ตาม space) */
   const keywords = useMemo(
     () => input.trim().split(/\s+/).filter(Boolean),
     [input],
   );
 
-  function resetTableFilters() {
-    setTf({ wbs1: [], wbs2: [], wbs3: [], wbs4: [] });
-    setPage(1);
-  }
-
-  function clearPending() {
-    setPendingRemoveIds(new Set());
-  }
-
-  function togglePending(id: string) {
-    setPendingRemoveIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-    // IMPORTANT: do NOT setPage(1) here — keep UX stable
-  }
-
-  function onSearch() {
-    setError("");
-    setPage(1);
-    resetTableFilters();
-    clearPending();
-
-    const regex = buildDescriptionRegex(input, matchMode);
-    if (!regex) {
-      setResult([]);
-      setWorkingRows([]);
-      return;
-    }
-
-    try {
-      // keep only rows with amount > 0 (as you requested)
-      const filtered = filterByDescription(rows, regex).filter(
-        (r) => r.amount > 0,
-      );
-      setResult(filtered);
-
-      const w = filtered.map((r, i) => ({ ...r, _id: makeRowId(r, i) }));
-      setWorkingRows(w);
-    } catch {
-      setError("Invalid search pattern");
-    }
-  }
-
-  // Apply header filters on workingRows (multi)
+  /**
+   * filteredWorkingRows = workingRows ที่ถูกกรองด้วย header filters (WBS + Unit)
+   * NOTE: ไม่รวม pending remove เพราะ pending ยังไม่ลบจริง
+   */
   const filteredWorkingRows = useMemo(() => {
     return workingRows.filter((r) => {
       if (tf.wbs1.length && !tf.wbs1.includes(r.wbs1)) return false;
       if (tf.wbs2.length && !tf.wbs2.includes(r.wbs2)) return false;
       if (tf.wbs3.length && !tf.wbs3.includes(r.wbs3)) return false;
       if (tf.wbs4.length && !tf.wbs4.includes(r.wbs4)) return false;
+
+      // ✅ Unit filter
+      const u = normalizeUnit(r.unit);
+      if (tf.unit.length && !tf.unit.includes(u)) return false;
+
       return true;
     });
-  }, [workingRows, tf.wbs1, tf.wbs2, tf.wbs3, tf.wbs4]);
+  }, [workingRows, tf]);
 
-  // Pending count in current filtered view (what Apply will remove)
+  /** pending count เฉพาะใน view ปัจจุบัน (หลังกรอง header แล้ว) */
   const pendingCountInFiltered = useMemo(() => {
     if (pendingRemoveIds.size === 0) return 0;
     let c = 0;
@@ -156,23 +160,119 @@ export default function QuerySection({ rows }: Props) {
     return c;
   }, [filteredWorkingRows, pendingRemoveIds]);
 
-  function applyPendingRemovals() {
+  /** pagination computed */
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredWorkingRows.length / PAGE_SIZE),
+  );
+
+  const pageData = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filteredWorkingRows.slice(start, start + PAGE_SIZE);
+  }, [filteredWorkingRows, page]);
+
+  /** summary based on "applied state" (หลัง filter + applied removal) */
+  const sumAmount = useMemo(
+    () => filteredWorkingRows.reduce((acc, r) => acc + safeNum(r.amount), 0),
+    [filteredWorkingRows],
+  );
+
+  const qtyByUnit = useMemo(
+    () => sumByUnit(filteredWorkingRows),
+    [filteredWorkingRows],
+  );
+
+  // =========================
+  // 3) ACTIONS / HELPERS
+  // =========================
+
+  /** reset filters + page */
+  const resetFilters = useCallback(() => {
+    setTf({ wbs1: [], wbs2: [], wbs3: [], wbs4: [], unit: [] });
+    setPage(1);
+  }, []);
+
+  /** clear staging removal */
+  const clearPending = useCallback(() => {
+    setPendingRemoveIds(new Set());
+  }, []);
+
+  /** helper: patch filters แล้ว reset page (ใช้กับ dropdown) */
+  const patchFilters = useCallback((patch: Partial<TableFilters>) => {
+    setTf((prev) => ({ ...prev, ...patch }));
+    setPage(1);
+  }, []);
+
+  /** toggle pending row remove (highlight only) */
+  const togglePending = useCallback((id: string) => {
+    setPendingRemoveIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+    // NOTE: ไม่ reset page เพื่อรักษา UX (user ไม่หลุดหน้าที่กำลังดู)
+  }, []);
+
+  /**
+   * Search: สร้าง workingRows ใหม่จาก source rows
+   * - reset error/page/filters/pending ก่อน
+   * - filter amount > 0 ตามที่ต้องการ
+   */
+  const onSearch = useCallback(() => {
+    setError("");
+    setPage(1);
+    setTf({ wbs1: [], wbs2: [], wbs3: [], wbs4: [], unit: [] });
+    setPendingRemoveIds(new Set());
+
+    const regex = buildDescriptionRegex(input, matchMode);
+    if (!regex) {
+      setWorkingRows([]);
+      return;
+    }
+
+    try {
+      const filtered = filterByDescription(rows, regex).filter(
+        (r) => r.amount > 0,
+      );
+      const w: WorkingRow[] = filtered.map((r, i) => ({
+        ...r,
+        _id: makeRowId(r, i),
+      }));
+      setWorkingRows(w);
+    } catch {
+      setError("Invalid search pattern");
+      setWorkingRows([]);
+    }
+  }, [input, matchMode, rows]);
+
+  /**
+   * Apply pending removals:
+   * - ลบจริงจาก workingRows
+   * - clamp page ให้ไม่เกิน total pages หลังลบ
+   */
+  const applyPendingRemovals = useCallback(() => {
     if (pendingRemoveIds.size === 0) return;
 
-    // compute new total pages (based on filtered view) then clamp page
     const newLen = filteredWorkingRows.length - pendingCountInFiltered;
     const newTotalPages = Math.max(1, Math.ceil(newLen / PAGE_SIZE));
     setPage((p) => Math.min(p, newTotalPages));
 
-    // remove from the real workingRows
     setWorkingRows((prev) => prev.filter((r) => !pendingRemoveIds.has(r._id)));
-
-    // clear staging
     clearPending();
-  }
+  }, [
+    clearPending,
+    filteredWorkingRows.length,
+    pendingCountInFiltered,
+    pendingRemoveIds,
+  ]);
 
-  function onDownloadCSV() {
-    // export current REAL table state (after filters + applied removals)
+  // =========================
+  // 4) EXPORT (CSV / PDF)
+  // =========================
+
+  /** Export CSV จาก state ปัจจุบัน (หลัง header filters + applied removals) */
+  const onDownloadCSV = useCallback(() => {
     const csv = toCSV(filteredWorkingRows.map(({ _id, ...rest }) => rest));
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -183,25 +283,47 @@ export default function QuerySection({ rows }: Props) {
     a.click();
 
     URL.revokeObjectURL(url);
-  }
+  }, [filteredWorkingRows]);
 
-  async function onExportPDF() {
+  /**
+   * Export PDF (client-side)
+   * - registerThaiFont เพื่อให้ภาษาไทยไม่เพี้ยน
+   * - auto-fit width เพื่อไม่ให้ตารางล้นหน้า
+   */
+  const onExportPDF = useCallback(async () => {
     const data = filteredWorkingRows;
 
-    const [{ jsPDF }, autoTableMod] = await Promise.all([
+    const [{ jsPDF }, { default: autoTable }] = await Promise.all([
       import("jspdf"),
       import("jspdf-autotable"),
     ]);
+    const { registerThaiFont } = await import("@/lib/pdf/registerThaiFont");
 
     const doc = new jsPDF({
       orientation: "landscape",
       unit: "pt",
       format: "a4",
     });
+    await registerThaiFont(doc);
 
-    const title = `BOQ Query Result (${data.length} rows)`;
+    const marginX = 40;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const available = pageWidth - marginX * 2;
+
+    const w = { wbs: 42, unit: 40, qty: 48, money: 62 };
+    const fixed = w.wbs * 4 + w.unit + w.qty + w.money * 3;
+    const descW = Math.max(180, available - fixed);
+
+    doc.setFont("Sarabun", "normal");
     doc.setFontSize(14);
-    doc.text(title, 40, 36);
+    doc.text(
+      `BOQ Query Result (${data.length.toLocaleString()} rows)`,
+      marginX,
+      32,
+    );
+
+    doc.setFontSize(9);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, marginX, 46);
 
     const head = [
       [
@@ -219,62 +341,85 @@ export default function QuerySection({ rows }: Props) {
     ];
 
     const body = data.map((r) => [
-      r.wbs1,
-      r.wbs2,
-      r.wbs3,
-      r.wbs4,
-      r.description,
-      r.unit,
-      String(r.qty ?? 0),
-      String(r.material ?? 0),
-      String(r.labor ?? 0),
-      String(r.amount ?? 0),
+      r.wbs1 ?? "",
+      r.wbs2 ?? "",
+      r.wbs3 ?? "",
+      r.wbs4 ?? "",
+      r.description ?? "",
+      normalizeUnit(r.unit),
+      fmtNum(safeNum(r.qty)),
+      fmtNum(safeNum(r.material)),
+      fmtNum(safeNum(r.labor)),
+      fmtNum(safeNum(r.amount)),
     ]);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (autoTableMod as any).default(doc, {
+    autoTable(doc, {
       head,
       body,
       startY: 52,
-      styles: { fontSize: 8, cellPadding: 4, overflow: "linebreak" },
-      headStyles: { fillColor: [230, 230, 230], textColor: [30, 30, 30] },
+      margin: { left: marginX, right: marginX },
+      tableWidth: available,
+      styles: {
+        font: "Sarabun",
+        fontStyle: "normal",
+        fontSize: 8,
+        cellPadding: 3,
+        overflow: "linebreak",
+        valign: "top",
+      },
+      headStyles: {
+        font: "Sarabun",
+        fontStyle: "bold",
+        fillColor: [230, 230, 230],
+        textColor: [30, 30, 30],
+      },
       columnStyles: {
-        6: { halign: "right" },
-        7: { halign: "right" },
-        8: { halign: "right" },
-        9: { halign: "right" },
+        0: { cellWidth: w.wbs },
+        1: { cellWidth: w.wbs },
+        2: { cellWidth: w.wbs },
+        3: { cellWidth: w.wbs },
+        4: { cellWidth: descW },
+        5: { cellWidth: w.unit },
+        6: { halign: "right", cellWidth: w.qty },
+        7: { halign: "right", cellWidth: w.money },
+        8: { halign: "right", cellWidth: w.money },
+        9: { halign: "right", cellWidth: w.money },
+      },
+      didDrawPage: () => {
+        const pageNo = doc.getNumberOfPages();
+        doc.setFontSize(9);
+        doc.text(
+          `Page ${pageNo}`,
+          pageWidth - marginX,
+          doc.internal.pageSize.getHeight() - 18,
+          {
+            align: "right",
+          },
+        );
       },
     });
 
-    const sumAmount = data.reduce((acc, r) => acc + (r.amount ?? 0), 0);
+    const sum = data.reduce((acc, r) => acc + safeNum(r.amount), 0);
     const qtyUnits = sumByUnit(data);
-    const y = (doc as any).lastAutoTable?.finalY
-      ? (doc as any).lastAutoTable.finalY + 18
-      : 760;
+
+    const last = doc as unknown as { lastAutoTable?: { finalY?: number } };
+    const y = (last.lastAutoTable?.finalY ?? 740) + 18;
 
     doc.setFontSize(10);
-    doc.text(`Sum Amount: ${sumAmount.toLocaleString()}`, 40, y);
+    doc.text(`Sum Amount: ${fmtNum(sum)}`, marginX, y);
 
     const qtyText = qtyUnits
-      .map((x) => `${x.qty.toLocaleString()} ${x.unit}`)
+      .map((x) => `${fmtNum(x.qty)} ${x.unit}`)
       .join(" | ");
-
-    doc.text(`Sum Qty (by Unit): ${qtyText || "-"}`, 40, y + 14);
+    doc.text(`Sum Qty (by Unit): ${qtyText || "-"}`, marginX, y + 14);
 
     doc.save("boq_query_result.pdf");
-  }
+  }, [filteredWorkingRows]);
 
-  // ===== Pagination =====
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredWorkingRows.length / PAGE_SIZE),
-  );
-  const pageData = useMemo(() => {
-    const start = (page - 1) * PAGE_SIZE;
-    return filteredWorkingRows.slice(start, start + PAGE_SIZE);
-  }, [filteredWorkingRows, page]);
+  // =========================
+  // 5) FILTER OPTIONS (for dropdowns)
+  // =========================
 
-  // ===== Options (cascading with multi-select) =====
   const wbs1Options = useMemo(() => {
     const s = new Set<string>();
     for (const r of workingRows) s.add(r.wbs1);
@@ -311,17 +456,17 @@ export default function QuerySection({ rows }: Props) {
     return Array.from(s).filter(Boolean).sort();
   }, [workingRows, tf.wbs1, tf.wbs2, tf.wbs3]);
 
-  // ===== Summary (based on applied state only) =====
-  const sumAmount = useMemo(
-    () => filteredWorkingRows.reduce((acc, r) => acc + (r.amount ?? 0), 0),
-    [filteredWorkingRows],
-  );
-  const qtyByUnit = useMemo(
-    () => sumByUnit(filteredWorkingRows),
-    [filteredWorkingRows],
-  );
+  /** ✅ Unit options (simple: ไม่ cascade เพื่อให้เลือก unit ได้เสมอ) */
+  const unitOptions = useMemo(() => {
+    const s = new Set<string>();
+    for (const r of workingRows) s.add(normalizeUnit(r.unit));
+    return Array.from(s).filter(Boolean).sort();
+  }, [workingRows]);
 
-  // ===== Local UI tokens =====
+  // =========================
+  // 6) UI TOKENS (tailwind strings)
+  // =========================
+
   const card =
     "rounded-3xl border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-6 shadow-[var(--shadow-card)]";
   const muted = "text-[color:var(--color-muted-foreground)]";
@@ -337,13 +482,26 @@ export default function QuerySection({ rows }: Props) {
     "h-4 w-4 rounded border border-[color:var(--color-border)] accent-[color:var(--color-accent)]";
 
   const btnPrimary =
-    "h-10 rounded-xl bg-[color:var(--color-accent)] px-4 text-sm font-medium text-white shadow-[var(--shadow-input)] " +
-    "transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-accent)]/40";
+    "inline-flex items-center justify-center gap-2 h-10 rounded-xl " +
+    "bg-[color:var(--color-accent)] px-4 text-sm font-medium text-white " +
+    "shadow-[var(--shadow-input)] " +
+    "transition-all duration-150 ease-out " +
+    "hover:-translate-y-[1px] hover:shadow-lg hover:brightness-110 " +
+    "active:translate-y-0 active:scale-[0.98] active:shadow-md " +
+    "focus:outline-none focus:ring-2 focus:ring-[color:var(--color-accent)]/40 " +
+    "disabled:opacity-50 disabled:shadow-none disabled:hover:translate-y-0 disabled:active:scale-100";
 
   const btnGhost =
-    "rounded-xl border border-[color:var(--color-border)] bg-[color:var(--color-surface-2)] px-3 py-1.5 text-xs " +
-    "text-[color:var(--color-foreground)] shadow-[var(--shadow-input)] transition hover:opacity-90 " +
-    "focus:outline-none focus:ring-2 focus:ring-[color:var(--color-accent)]/35 disabled:opacity-40";
+    "inline-flex items-center justify-center gap-2 rounded-xl " +
+    "border border-[color:var(--color-border)] " +
+    "bg-[color:var(--color-surface-2)] px-3 py-1.5 text-xs " +
+    "text-[color:var(--color-foreground)] " +
+    "shadow-[var(--shadow-input)] " +
+    "transition-all duration-150 ease-out " +
+    "hover:-translate-y-[1px] hover:shadow-md hover:border-[color:var(--color-accent)]/35 " +
+    "active:translate-y-0 active:scale-[0.98] active:shadow-sm " +
+    "focus:outline-none focus:ring-2 focus:ring-[color:var(--color-accent)]/35 " +
+    "disabled:opacity-40 disabled:shadow-none disabled:hover:translate-y-0 disabled:active:scale-100";
 
   const tableWrap =
     "overflow-auto rounded-2xl border border-[color:var(--color-border)] bg-[color:var(--color-surface)]";
@@ -365,31 +523,29 @@ export default function QuerySection({ rows }: Props) {
       ? "[&>mark]:bg-amber-400/25 [&>mark]:text-amber-200"
       : "[&>mark]:bg-yellow-200 [&>mark]:text-slate-900");
 
-  // multi-select UI (taller)
-  const filterSelect =
-    "mt-1 h-20 w-full rounded-lg border border-[color:var(--color-border)] bg-[color:var(--color-surface)] " +
-    "px-2 text-[11px] text-[color:var(--color-foreground)] outline-none " +
-    "focus:ring-2 focus:ring-[color:var(--color-accent)]/25";
-
   const pendingRowCls = isDark ? "bg-red-500/10" : "bg-rose-50";
+
+  // =========================
+  // 7) RENDER
+  // =========================
 
   return (
     <section className={`${card} space-y-4`}>
+      {/* Header */}
       <div className="flex items-end justify-between gap-4">
         <div>
           <h2 className={`text-lg font-semibold ${fg}`}>BOQ Query</h2>
           <div className={`mt-1 text-xs ${muted}`}>
-            • ค้นหา Description • WBS filter เลือกได้หลายค่า (กด cmd/ctrl) •
-            เลือกแถวตัดออก (highlight) • Apply ทีเดียว
+            • ค้นหา Description • WBS/Unit filter เลือกได้หลายค่า •
+            เลือกแถวตัดออก (pending) • Apply ทีเดียว
           </div>
         </div>
-
         <div className={`text-xs ${muted}`}>
           Page size: <span className={`${fg} font-medium`}>{PAGE_SIZE}</span>
         </div>
       </div>
 
-      {/* Search input */}
+      {/* Search */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <input
           value={input}
@@ -450,28 +606,20 @@ export default function QuerySection({ rows }: Props) {
               >
                 Apply
               </button>
-
               <button
                 type="button"
-                onClick={() => setPendingRemoveIds(new Set())}
+                onClick={clearPending}
                 disabled={pendingCountInFiltered === 0}
                 className={btnGhost}
               >
                 Undo
               </button>
-
-              <button
-                type="button"
-                onClick={resetTableFilters}
-                className={btnGhost}
-              >
+              <button type="button" onClick={resetFilters} className={btnGhost}>
                 Clear filters
               </button>
-
               <button type="button" onClick={onExportPDF} className={btnGhost}>
                 Export PDF
               </button>
-
               <button
                 type="button"
                 onClick={onDownloadCSV}
@@ -492,16 +640,14 @@ export default function QuerySection({ rows }: Props) {
                       label="WBS-1"
                       options={wbs1Options.map((v) => ({ value: v }))}
                       value={tf.wbs1}
-                      onChange={(next) => {
-                        setTf((prev) => ({
-                          ...prev,
+                      onChange={(next) =>
+                        patchFilters({
                           wbs1: next,
                           wbs2: [],
                           wbs3: [],
                           wbs4: [],
-                        }));
-                        setPage(1);
-                      }}
+                        })
+                      }
                       placeholder="All"
                     />
                   </th>
@@ -511,15 +657,9 @@ export default function QuerySection({ rows }: Props) {
                       label="WBS-2"
                       options={wbs2Options.map((v) => ({ value: v }))}
                       value={tf.wbs2}
-                      onChange={(next) => {
-                        setTf((prev) => ({
-                          ...prev,
-                          wbs2: next,
-                          wbs3: [],
-                          wbs4: [],
-                        }));
-                        setPage(1);
-                      }}
+                      onChange={(next) =>
+                        patchFilters({ wbs2: next, wbs3: [], wbs4: [] })
+                      }
                       placeholder="All"
                       disabled={wbs2Options.length === 0}
                     />
@@ -530,10 +670,9 @@ export default function QuerySection({ rows }: Props) {
                       label="WBS-3"
                       options={wbs3Options.map((v) => ({ value: v }))}
                       value={tf.wbs3}
-                      onChange={(next) => {
-                        setTf((prev) => ({ ...prev, wbs3: next, wbs4: [] }));
-                        setPage(1);
-                      }}
+                      onChange={(next) =>
+                        patchFilters({ wbs3: next, wbs4: [] })
+                      }
                       placeholder="All"
                       disabled={wbs3Options.length === 0}
                     />
@@ -544,17 +683,26 @@ export default function QuerySection({ rows }: Props) {
                       label="WBS-4"
                       options={wbs4Options.map((v) => ({ value: v }))}
                       value={tf.wbs4}
-                      onChange={(next) => {
-                        setTf((prev) => ({ ...prev, wbs4: next }));
-                        setPage(1);
-                      }}
+                      onChange={(next) => patchFilters({ wbs4: next })}
                       placeholder="All"
                       disabled={wbs4Options.length === 0}
                     />
                   </th>
 
                   <th className={th}>Description</th>
-                  <th className={`${th} text-left`}>Unit</th>
+
+                  {/* ✅ Unit filter column */}
+                  <th className={th}>
+                    <MultiSelectDropdown
+                      label="Unit"
+                      options={unitOptions.map((v) => ({ value: v }))}
+                      value={tf.unit}
+                      onChange={(next) => patchFilters({ unit: next })}
+                      placeholder="All"
+                      disabled={unitOptions.length === 0}
+                    />
+                  </th>
+
                   <th className={`${th} text-right`}>Qty</th>
                   <th className={`${th} text-right`}>Material</th>
                   <th className={`${th} text-right`}>Labor</th>
@@ -575,6 +723,7 @@ export default function QuerySection({ rows }: Props) {
                       <td className={td}>{r.wbs2}</td>
                       <td className={td}>{r.wbs3}</td>
                       <td className={td}>{r.wbs4}</td>
+
                       <td className={td}>
                         <span className={markWrap}>
                           {highlightText(r.description, keywords)}
@@ -585,16 +734,13 @@ export default function QuerySection({ rows }: Props) {
                           </span>
                         ) : null}
                       </td>
-                      <td className={td}>{r.unit}</td>
-                      <td className={tdNum}>{(r.qty ?? 0).toLocaleString()}</td>
-                      <td className={tdNum}>
-                        {(r.material ?? 0).toLocaleString()}
-                      </td>
-                      <td className={tdNum}>
-                        {(r.labor ?? 0).toLocaleString()}
-                      </td>
+
+                      <td className={td}>{normalizeUnit(r.unit)}</td>
+                      <td className={tdNum}>{fmtInt(safeNum(r.qty))}</td>
+                      <td className={tdNum}>{fmtInt(safeNum(r.material))}</td>
+                      <td className={tdNum}>{fmtInt(safeNum(r.labor))}</td>
                       <td className={`${tdNum} font-semibold`}>
-                        {(r.amount ?? 0).toLocaleString()}
+                        {fmtInt(safeNum(r.amount))}
                       </td>
 
                       <td className="p-2 text-right">
@@ -603,7 +749,7 @@ export default function QuerySection({ rows }: Props) {
                           className={
                             "h-7 w-7 rounded-lg border border-[color:var(--color-border)] " +
                             "bg-[color:var(--color-surface-2)] text-xs text-[color:var(--color-foreground)] " +
-                            "hover:opacity-90"
+                            "transition-all duration-150 hover:-translate-y-[1px] hover:shadow-md active:translate-y-0 active:scale-[0.98]"
                           }
                           onClick={() => togglePending(r._id)}
                           aria-label={
@@ -628,7 +774,7 @@ export default function QuerySection({ rows }: Props) {
                       <span className={fg}>
                         {qtyByUnit.length
                           ? qtyByUnit
-                              .map((x) => `${x.qty.toLocaleString()} ${x.unit}`)
+                              .map((x) => `${fmtNum(x.qty)} ${x.unit}`)
                               .join("  |  ")
                           : "-"}
                       </span>
@@ -638,7 +784,7 @@ export default function QuerySection({ rows }: Props) {
                   <td className="p-3 text-xs text-right" colSpan={4}>
                     <div className={`text-[11px] ${muted}`}>Sum Amount</div>
                     <div className={`text-sm font-semibold ${fg}`}>
-                      {sumAmount.toLocaleString()}
+                      {fmtInt(sumAmount)}
                     </div>
                   </td>
 
@@ -648,6 +794,7 @@ export default function QuerySection({ rows }: Props) {
             </table>
           </div>
 
+          {/* Pagination */}
           <div className="flex items-center justify-between text-xs">
             <div className={muted}>
               Page <span className={`${fg} font-medium`}>{page}</span> /{" "}
