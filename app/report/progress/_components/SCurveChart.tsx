@@ -19,6 +19,7 @@ type Props = {
 
 function fmt(v: unknown): string {
   if (typeof v === "number" && Number.isFinite(v)) return v.toFixed(2);
+  if (typeof v === "string" && v.trim() !== "") return v;
   return "—";
 }
 
@@ -43,10 +44,12 @@ export default function SCurveChart({ data, cutoffLabel }: Props) {
           <LineChart data={data}>
             <XAxis dataKey="week" hide />
             <YAxis tickFormatter={(v) => `${v}`} width={40} />
+
             <Tooltip
-              formatter={(value: unknown, name: string) => [fmt(value), name]}
-              labelFormatter={(label) => `${label}`}
+              formatter={(value, name) => [fmt(value), String(name ?? "")]}
+              labelFormatter={(label) => String(label)}
             />
+
             <Legend />
 
             {cutoffX ? (
@@ -57,7 +60,6 @@ export default function SCurveChart({ data, cutoffLabel }: Props) {
               />
             ) : null}
 
-            {/* Plan: muted accent */}
             <Line
               type="monotone"
               dataKey="plan"
@@ -67,7 +69,6 @@ export default function SCurveChart({ data, cutoffLabel }: Props) {
               stroke="var(--color-accent-2)"
             />
 
-            {/* Actual: stronger accent */}
             <Line
               type="monotone"
               dataKey="actual"
