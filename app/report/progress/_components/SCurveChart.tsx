@@ -1,5 +1,7 @@
 "use client";
 
+import type { TooltipProps } from "recharts";
+
 import type { ProgressPoint } from "@/app/report/_data/models/progress";
 import {
   ResponsiveContainer,
@@ -17,6 +19,8 @@ type Props = {
   cutoffLabel?: string | null;
 };
 
+type MyFormatter = NonNullable<TooltipProps<number, string>["formatter"]>;
+
 function fmt(v: unknown): string {
   if (typeof v === "number" && Number.isFinite(v)) return v.toFixed(2);
   if (typeof v === "string" && v.trim() !== "") return v;
@@ -27,6 +31,11 @@ export default function SCurveChart({ data, cutoffLabel }: Props) {
   const cutoffX = cutoffLabel
     ? (data.find((d) => d.week === cutoffLabel)?.week ?? null)
     : null;
+
+  const tooltipFormatter: MyFormatter = (value, name) => [
+    fmt(value),
+    String(name ?? ""),
+  ];
 
   return (
     <div className="rounded-2xl border border-border bg-surface p-4 shadow-card">
@@ -46,7 +55,7 @@ export default function SCurveChart({ data, cutoffLabel }: Props) {
             <YAxis tickFormatter={(v) => `${v}`} width={40} />
 
             <Tooltip
-              formatter={(value, name) => [fmt(value), String(name ?? "")]}
+              formatter={tooltipFormatter}
               labelFormatter={(label) => String(label)}
             />
 
