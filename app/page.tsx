@@ -89,10 +89,10 @@ export default function HomePage() {
               badge="Cost"
             />
             <EntryCard
-              title="Progress"
+              title="Reports"
               description="Plan vs Actual • S-curve • weekly/monthly snapshots"
-              href="/progress"
-              badge="Schedule"
+              href="/report/progress"
+              badge="Reports"
             />
             <EntryCard
               title="Media"
@@ -107,12 +107,12 @@ export default function HomePage() {
         <footer className="mt-auto pt-10 text-xs text-white/55 flex items-center">
           <span>© {new Date().getFullYear()} OKMD CM • Built with Next.js</span>
 
-          <Link
+          {/* <Link
             href="/forms"
             className="ml-auto text-sm text-white/55  hover:text-foreground underline underline-offset-4"
           >
             Project Forms
-          </Link>
+          </Link> */}
         </footer>
       </div>
     </main>

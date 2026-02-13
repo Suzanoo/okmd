@@ -86,11 +86,11 @@ export default function AppHeader() {
           onClick={() => setOpen(false)}
         >
           <Image
-            src="https://www.okmd.or.th/images/template/logo_okmd.png"
+            src="/images/logo.png"
             alt="OKMD"
             width={72}
             height={72}
-            className="rounded-2xl bg-white/10 p-1 ring-1 ring-white/15 backdrop-blur-md object-contain"
+            className="rounded-full bg-white/10 p-1 ring-1 ring-white/15 backdrop-blur-md object-contain"
             priority
           />
         </Link>
