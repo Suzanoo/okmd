@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ExternalLink } from "lucide-react";
 
 type EntryCardProps = {
   title: string;
@@ -58,7 +57,7 @@ export default function HomePage() {
 
       {/* Overlays */}
       <div className="absolute inset-0 bg-black/5" />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/45 to-black/70" />
+      <div className="absolute inset-0 bg-linear-to-b from-black/20 via-black/45 to-black/70" />
 
       {/* Content */}
       <div className="relative mx-auto flex min-h-screen max-w-6xl flex-col px-6 py-10">

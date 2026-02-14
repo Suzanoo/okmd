@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import AppHeader from "./_components/AppHeader";
+import AppHeader from "./_components/AppHeader"; // server wrapper
 import ThemeProvider from "./_providers/ThemeProvider";
 import "./globals.css";
 
