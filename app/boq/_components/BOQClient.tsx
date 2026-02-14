@@ -62,7 +62,7 @@ export default function BOQClient() {
 
       try {
         const b = await fetchWorkbookBuffer(boqPath(building));
-        const sheets = getValidSheetsFromBuffer(b);
+        const sheets = await getValidSheetsFromBuffer(b);
 
         setBuf(b);
         setValidSheets(sheets);
@@ -85,24 +85,40 @@ export default function BOQClient() {
   useEffect(() => {
     if (!buf || !selectedSheet) return;
 
-    setIsLoading(true);
-    setErrorMsg("");
+    // ✅ snapshot (ทำให้ TS มั่นใจ + กัน race)
+    const b = buf;
+    const sheet = selectedSheet;
 
-    // reset cascade (sheet changed)
-    setWbs1(null);
-    setWbs2(null);
-    setWbs3(null);
-    setWbs4(null);
+    let cancelled = false;
 
-    try {
-      const r = parseBoqRowsFromBuffer(buf, selectedSheet);
-      setRows(r);
-    } catch (e) {
-      setErrorMsg(e instanceof Error ? e.message : "Parse error");
-      setRows([]);
-    } finally {
-      setIsLoading(false);
+    async function run() {
+      setIsLoading(true);
+      setErrorMsg("");
+
+      setWbs1(null);
+      setWbs2(null);
+      setWbs3(null);
+      setWbs4(null);
+
+      try {
+        await new Promise<void>((r) => requestAnimationFrame(() => r()));
+        const r = await parseBoqRowsFromBuffer(b, sheet); // ✅ ใช้ snapshot
+        if (!cancelled) setRows(r);
+      } catch (e) {
+        if (!cancelled) {
+          setErrorMsg(e instanceof Error ? e.message : "Parse error");
+          setRows([]);
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
     }
+
+    run();
+
+    return () => {
+      cancelled = true;
+    };
   }, [buf, selectedSheet]);
 
   // ===== Derived rowsets =====

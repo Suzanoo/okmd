@@ -1,4 +1,4 @@
-import * as XLSX from "xlsx";
+import type * as XLSXType from "xlsx";
 import type { BoqRow } from "./types";
 import { REQUIRED_COLUMNS } from "./schema";
 
@@ -22,13 +22,23 @@ function findHeaderIndexMap(headerRow: unknown[]): Record<string, number> {
   return map;
 }
 
+// lazy import
+let _XLSX: typeof XLSXType | null = null;
+async function getXLSX() {
+  if (_XLSX) return _XLSX;
+  _XLSX = (await import("xlsx")) as typeof XLSXType;
+  return _XLSX;
+}
+
 export async function fetchWorkbookBuffer(publicPath: string): Promise<ArrayBuffer> {
-  const res = await fetch(publicPath, { cache: "no-store" });
+  // Vercel CDN/cache use
+  const res = await fetch(publicPath);
   if (!res.ok) throw new Error(`Failed to fetch: ${publicPath}`);
   return await res.arrayBuffer();
 }
 
-export function getValidSheetsFromBuffer(buf: ArrayBuffer) {
+export async function getValidSheetsFromBuffer(buf: ArrayBuffer) {
+  const XLSX = await getXLSX();
   const wb = XLSX.read(buf, { type: "array" });
 
   return wb.SheetNames.filter((name) => {
@@ -46,10 +56,11 @@ export function getValidSheetsFromBuffer(buf: ArrayBuffer) {
   });
 }
 
-export function parseBoqRowsFromBuffer(
+export async function parseBoqRowsFromBuffer(
   buf: ArrayBuffer,
   sheetName: string
-): BoqRow[] {
+): Promise<BoqRow[]>  {
+  const XLSX = await getXLSX();
   const wb = XLSX.read(buf, { type: "array" });
   const ws = wb.Sheets[sheetName];
   if (!ws) return [];

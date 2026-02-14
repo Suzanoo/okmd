@@ -90,7 +90,7 @@ export default function AppHeader() {
             alt="OKMD"
             width={72}
             height={72}
-            className="rounded-full bg-white/10 p-1 ring-1 ring-white/15 backdrop-blur-md object-contain"
+            className="rounded-full bg-white/10 p-1 ring-1 ring-black backdrop-blur-md object-contain"
             priority
           />
         </Link>

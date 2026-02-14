@@ -65,11 +65,11 @@ export default function HomePage() {
         {/* Hero */}
         <section className="mt-16">
           <p className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-white/80 backdrop-blur-md">
-            Project Control Center
+            LET IT BE
           </p>
 
           <h1 className="mt-4 max-w-3xl text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-            OKMD – Next ⤴️
+            🙈 🙉 🙊
             {/* <span className="block text-white/70">
               Construction Management App
             </span> */}
@@ -83,19 +83,19 @@ export default function HomePage() {
           {/* Action Cards */}
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <EntryCard
-              title="BOQ"
+              title="💰💰💰"
               description="Quantity & cost control • BOQ query • package summary"
               href="/boq"
               badge="Cost"
             />
             <EntryCard
-              title="Reports"
+              title="📈 📊 📉"
               description="Plan vs Actual • S-curve • weekly/monthly snapshots"
               href="/report/progress"
               badge="Reports"
             />
             <EntryCard
-              title="Media"
+              title="📸 📽 💿"
               description="Project Visual Records • Video timelapse • Photo logs"
               href="/media"
               badge="MEDIA"
