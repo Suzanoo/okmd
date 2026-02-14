@@ -2,7 +2,7 @@
 import { readWorkbookFromArrayBuffer, loadXlsxModule } from "@/lib/excel/readWorkbook";
 import type { ProgressDataset, ProgressPoint } from "../models/progress";
 import { parseProgressSummarySheet, buildFullSeries } from "./parseProgressSummary";
-import { applyCutoffToSeries } from "@/app/report/progress/_logic/applyCutoff";
+import { applyCutoffToSeries } from "@/app/(protected)/report/progress/_logic/applyCutoff";
 import { monthKeyFromISODate } from "@/lib/report/time";
 
 function nowISO(): string {

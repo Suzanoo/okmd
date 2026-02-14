@@ -2,7 +2,7 @@
 
 import type { TooltipProps } from "recharts";
 
-import type { ProgressPoint } from "@/app/report/_data/models/progress";
+import type { ProgressPoint } from "@/app/(protected)/report/_data/models/progress";
 import {
   ResponsiveContainer,
   LineChart,

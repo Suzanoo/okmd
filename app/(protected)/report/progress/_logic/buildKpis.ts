@@ -1,5 +1,5 @@
 // app/report/progress/_logic/buildKpis.ts
-import type { ProgressDataset } from "@/app/report/_data/models/progress";
+import type { ProgressDataset } from "@/app/(protected)/report/_data/models/progress";
 
 export type VarianceStatus = "ahead" | "ontrack" | "behind";
 

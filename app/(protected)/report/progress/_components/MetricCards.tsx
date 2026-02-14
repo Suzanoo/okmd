@@ -1,6 +1,6 @@
 "use client";
 
-import type { ProgressKpis } from "@/app/report/progress/_logic/buildKpis";
+import type { ProgressKpis } from "@/app/(protected)/report/progress/_logic/buildKpis";
 
 function formatNumber(v: number) {
   return v.toFixed(2);

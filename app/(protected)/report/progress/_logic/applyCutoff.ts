@@ -1,5 +1,5 @@
 // app/report/progress/_logic/applyCutoff.ts
-import type { ProgressPoint } from "@/app/report/_data/models/progress";
+import type { ProgressPoint } from "@/app/(protected)/report/_data/models/progress";
 import { compareISODate } from "@/lib/report/time";
 
 /**

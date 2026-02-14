@@ -1,4 +1,3 @@
-import { requireActiveUser } from "@/lib/auth/requireActiveUser";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -45,8 +44,6 @@ function EntryCard({ title, description, href, badge }: EntryCardProps) {
 }
 
 export default async function ReportPage() {
-  await requireActiveUser({ nextPath: "/report" });
-
   return (
     <main className="relative min-h-screen overflow-hidden">
       {/* BG Image */}
