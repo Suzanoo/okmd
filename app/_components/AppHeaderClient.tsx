@@ -18,9 +18,10 @@ const nav = [
 
 type Props = {
   user: User | null;
+  isAdmin: boolean;
 };
 
-export default function AppHeader({ user }: Props) {
+export default function AppHeader({ user, isAdmin }: Props) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -130,6 +131,7 @@ export default function AppHeader({ user }: Props) {
               <span className="text-xs text-muted-foreground">
                 {user.email}
               </span>
+              {isAdmin ? <Link href="/admin">ADMIN</Link> : null}
               <LogoutButton />
             </>
           ) : (

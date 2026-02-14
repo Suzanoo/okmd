@@ -1,13 +1,9 @@
-import { redirect } from "next/navigation";
-import { supabaseServer } from "@/lib/supabase/server";
+import { requireActiveUser } from "@/lib/auth/requireActiveUser";
 
 import BOQClient from "./_components/BOQClient";
 
 export default async function BOQPage() {
-  const supabase = await supabaseServer();
-  const { data } = await supabase.auth.getUser();
-
-  if (!data.user) redirect("/login?next=/boq");
+  await requireActiveUser({ nextPath: "/boq" });
 
   return <BOQClient />;
 }

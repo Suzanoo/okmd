@@ -88,9 +88,9 @@ export default function HomePage() {
               badge="Cost"
             />
             <EntryCard
-              title="📈 📊 📉"
+              title="📈 👩‍🚒 💰"
               description="Plan vs Actual • S-curve • weekly/monthly snapshots"
-              href="/report/progress"
+              href="/report"
               badge="Reports"
             />
             <EntryCard

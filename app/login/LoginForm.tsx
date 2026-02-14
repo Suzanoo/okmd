@@ -23,7 +23,7 @@ export default function LoginForm() {
   return (
     <main className="mx-auto max-w-md px-6 py-12">
       <div className="rounded-2xl border border-border bg-surface p-6 shadow-card">
-        <h1 className="text-xl font-semibold text-foreground">OKMD Sign in</h1>
+        <h1 className="text-xl font-semibold text-foreground">KAMUI Sign in</h1>
 
         <form
           className="mt-6 space-y-3"
