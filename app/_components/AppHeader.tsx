@@ -88,8 +88,8 @@ export default function AppHeader() {
           <Image
             src="/images/logo.png"
             alt="OKMD"
-            width={72}
-            height={72}
+            width={50}
+            height={50}
             className="rounded-full bg-white/10 p-1 ring-1 ring-black backdrop-blur-md object-contain"
             priority
           />
