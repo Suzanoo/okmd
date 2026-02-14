@@ -1,9 +1,8 @@
-import React, { Component } from "react";
-
-export class page extends Component {
-  render() {
-    return <div>This is REPORTS page</div>;
-  }
+export default function ReportPage() {
+  return (
+    <main className="min-h-screen p-8">
+      <h1 className="text-2xl font-semibold">Report</h1>
+      <p className="mt-2 text-muted-foreground">Coming soon…</p>
+    </main>
+  );
 }
-
-export default page;
