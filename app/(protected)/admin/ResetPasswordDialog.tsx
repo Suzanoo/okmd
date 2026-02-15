@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import ConfirmDialog from "./ConfirmDialog";
+
 export default function ResetPasswordDialog({
   userId,
   email,
@@ -15,6 +17,8 @@ export default function ResetPasswordDialog({
   const [pw, setPw] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [confirmWord, setConfirmWord] = useState("");
 
   async function submit() {
     setPending(true);
@@ -37,12 +41,13 @@ export default function ResetPasswordDialog({
     setOpen(false);
     setPw("");
     onDone?.();
+    setConfirmWord("");
   }
 
   return (
     <>
       <button
-        className="rounded-md border border-border px-2 py-1 text-xs hover:bg-white/5"
+        className="rounded-md border border-border px-2 py-1 text-xs hover:bg-white/5 bg-amber-500"
         onClick={() => setOpen(true)}
       >
         Reset PW
@@ -80,8 +85,18 @@ export default function ResetPasswordDialog({
                 </div>
               ) : null}
 
+              <label className="text-sm mt-3 block">
+                Type RESET to confirm
+              </label>
+              <input
+                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+                value={confirmWord}
+                onChange={(e) => setConfirmWord(e.target.value)}
+                placeholder="RESET"
+              />
+
               <button
-                disabled={pending}
+                disabled={pending || confirmWord.trim() !== "RESET"}
                 onClick={submit}
                 className="w-full rounded-xl bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-60"
               >

@@ -123,21 +123,23 @@ export default function AppHeader({ user, isAdmin }: Props) {
 
         {/* RIGHT */}
         <div className="flex items-center gap-2 md:gap-3">
-          {/* Thwme switch */}
-          <ThemeToggle />
-          {/* Logout */}
+          {/* Logout : Desktop auth actions only */}
           {user ? (
-            <>
+            <div className="hidden md:flex items-center gap-3">
               <span className="text-xs text-muted-foreground">
                 {user.email}
               </span>
-              {isAdmin ? <Link href="/admin">ADMIN</Link> : null}
+              {isAdmin ? (
+                <Link
+                  href="/admin"
+                  className="text-sm text-white/90 hover:text-white transition"
+                >
+                  ADMIN
+                </Link>
+              ) : null}
               <LogoutButton />
-            </>
-          ) : (
-            // <Link href="/login">Login</Link>
-            ""
-          )}
+            </div>
+          ) : null}
 
           {/* Hamburger (mobile only) */}
           <button
@@ -160,6 +162,9 @@ export default function AppHeader({ user, isAdmin }: Props) {
             />
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
+
+          {/* Theme switch */}
+          <ThemeToggle />
         </div>
       </div>
 
@@ -213,7 +218,13 @@ export default function AppHeader({ user, isAdmin }: Props) {
               </div>
               <div>
                 <div className="text-sm font-semibold text-white">KAMUI</div>
-                <div className="text-xs text-white/60">Dashboard</div>
+                <div className="text-xs text-white/60">
+                  {user ? (
+                    <div className="px-3 py-2 text-xs text-white/70 break-all">
+                      {user.email}
+                    </div>
+                  ) : null}
+                </div>
               </div>
             </div>
 
@@ -274,6 +285,29 @@ export default function AppHeader({ user, isAdmin }: Props) {
               </a>
             </div>
 
+            {/* Logout */}
+            {/* Auth block (mobile drawer) */}
+            {user ? (
+              <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-2">
+                {isAdmin ? (
+                  <Link
+                    href="/admin"
+                    onClick={() => setOpen(false)}
+                    className="flex items-center justify-between rounded-2xl px-3 py-3 text-sm font-medium text-white/90 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/20"
+                  >
+                    <span>ADMIN</span>
+                    <span className="text-xs text-white/60">Manage</span>
+                  </Link>
+                ) : null}
+
+                <div className="mt-2">
+                  <LogoutButton
+                    variant="drawer"
+                    onAfterLogout={() => setOpen(false)}
+                  />
+                </div>
+              </div>
+            ) : null}
             <div className="mt-4 px-2 text-xs text-white/50">
               Tip: กด <span className="text-white/80">Esc</span> เพื่อปิดเมนู
             </div>
