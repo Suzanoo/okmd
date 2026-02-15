@@ -10,7 +10,7 @@ export default function LoginForm() {
 
   const nextPath = useMemo(() => {
     const n = params.get("next");
-    if (!n || !n.startsWith("/")) return "/report";
+    if (!n || !n.startsWith("/")) return "/";
     return n;
   }, [params]);
 

@@ -1,5 +1,7 @@
 "use client";
 
+import ResetPasswordDialog from "./ResetPasswordDialog";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/browser";
 import CreateUserDialog from "./CreateUserDialog";
@@ -126,6 +128,16 @@ export default function AdminClient() {
                   >
                     Toggle
                   </button>
+                </td>
+
+                <td className="py-2">
+                  <div className="flex items-center gap-2">
+                    <ResetPasswordDialog
+                      userId={u.id}
+                      email={u.email}
+                      onDone={loadUsers}
+                    />
+                  </div>
                 </td>
               </tr>
             ))}
