@@ -34,7 +34,8 @@ export function filterByDescription(
   rows: BoqRow[],
   regex: RegExp
 ): BoqRow[] {
-  return rows.filter((r) => regex.test(r.description));
+  return rows.filter((r) => regex.test(r.description ?? ""));
+
 }
 
 export function toCSV(rows: BoqRow[]): string {

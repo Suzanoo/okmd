@@ -2,35 +2,19 @@
 
 import { useMemo, useState, useCallback } from "react";
 import type { BoqRow } from "@/lib/boq/types";
-import QueryTable from "./query/QueryTable";
-
-import {
-  buildDescriptionRegex,
-  filterByDescription,
-  toCSV,
-} from "@/lib/boq/query";
-import { highlightText } from "@/lib/boq/highlight";
+import { toCSV } from "@/lib/boq/query";
 import { useThemeStore } from "@/lib/theme/store";
 
-import MultiSelectDropdown from "./controls/MultiSelectDropdown";
+import QueryTable from "./query/QueryTable";
+import { useBoqQuery } from "./query/useBoqQuery";
 
-/** จำนวนแถวต่อหน้าในตารางผลลัพธ์ */
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 20; /** จำนวนแถวต่อหน้าในตารางผลลัพธ์ */
+const DEFAULT_LIMIT = 200; /** จำนวนแถวเริ่มต้นที่จะแสดง */
+const MAX_EXPORT_ROWS = 2000;
 
 type Props = {
   /** BOQ rows ทั้งหมด (source of truth) */
   rows: BoqRow[];
-};
-
-type MatchMode = "all" | "any";
-
-/**
- * WorkingRow = row หลังจาก search แล้ว + เพิ่ม _id สำหรับ:
- * - key ใน React table
- * - staging (pending remove) แบบปลอดภัย
- */
-type WorkingRow = BoqRow & {
-  _id: string;
 };
 
 /**
@@ -42,25 +26,10 @@ type TableFilters = {
   wbs2: string[];
   wbs3: string[];
   wbs4: string[];
-  unit: string[]; // ✅ เพิ่ม Unit filter
+  unit: string[]; // ✅ Unit filter
 };
 
 type QtyByUnit = { unit: string; qty: number };
-
-/** สร้าง id แบบ deterministic เพื่อให้ toggle/ลบได้ตรงตัว */
-function makeRowId(r: BoqRow, i: number) {
-  return [
-    r.wbs1,
-    r.wbs2,
-    r.wbs3,
-    r.wbs4,
-    r.description,
-    r.unit,
-    String(r.qty),
-    String(r.amount),
-    String(i),
-  ].join("||");
-}
 
 /** แปลง number ที่อาจเป็น null/undefined ให้ปลอดภัย */
 const safeNum = (v: number | null | undefined) =>
@@ -78,7 +47,7 @@ const fmtNum = (n: number) =>
 const normalizeUnit = (u: string | null | undefined) => (u ?? "").trim() || "-";
 
 /** รวม Qty ตาม unit สำหรับ summary */
-function sumByUnit(rows: WorkingRow[]): QtyByUnit[] {
+function sumByUnit(rows: Array<{ unit?: string | null; qty?: number | null }>) {
   const m = new Map<string, number>();
   for (const r of rows) {
     const u = normalizeUnit(r.unit);
@@ -93,52 +62,56 @@ export default function QuerySection({ rows }: Props) {
   const isDark = useThemeStore((s) => s.theme) === "dark";
 
   // =========================
-  // 1) UI STATE (source-of-truth)
+  // 1) Query state/actions (hook)
   // =========================
+  const {
+    input,
+    setInput,
+    matchMode,
+    setMatchMode,
+    error,
 
-  /** input ข้อความสำหรับค้นหา Description */
-  const [input, setInput] = useState("");
+    workingRows,
+    pendingRemoveIds,
+    page,
+    setPage,
+    keywords,
 
-  /** workingRows = ผล search แล้ว (และหลัง Apply removal แล้ว) */
-  const [workingRows, setWorkingRows] = useState<WorkingRow[]>([]);
+    onSearch,
+    togglePending,
+    clearPending,
+    applyPendingRemovals,
+  } = useBoqQuery(rows, { defaultLimit: DEFAULT_LIMIT });
 
-  /** staging สำหรับ "pending remove" (กด x แล้ว highlight ไว้ก่อน) */
-  const [pendingRemoveIds, setPendingRemoveIds] = useState<Set<string>>(
-    () => new Set(),
-  );
-
-  /** ข้อความ error สำหรับ regex/ค้นหา */
-  const [error, setError] = useState("");
-
-  /** pagination */
-  const [page, setPage] = useState(1);
-
-  /** matchMode: all words vs any word */
-  const [matchMode, setMatchMode] = useState<MatchMode>("all");
-
-  /** table header filters */
+  // =========================
+  // 2) Table header filters
+  // =========================
   const [tf, setTf] = useState<TableFilters>({
     wbs1: [],
     wbs2: [],
     wbs3: [],
     wbs4: [],
-    unit: [], // ✅
+    unit: [],
   });
 
-  // =========================
-  // 2) DERIVED DATA (computed)
-  // =========================
-
-  /** keywords สำหรับ highlight ใน Description (split ตาม space) */
-  const keywords = useMemo(
-    () => input.trim().split(/\s+/).filter(Boolean),
-    [input],
+  /** helper: patch filters แล้ว reset page (ใช้กับ dropdown) */
+  const patchFilters = useCallback(
+    (patch: Partial<TableFilters>) => {
+      setTf((prev) => ({ ...prev, ...patch }));
+      setPage(1);
+    },
+    [setPage],
   );
 
-  /**
-   * filteredWorkingRows = workingRows ที่ถูกกรองด้วย header filters (WBS + Unit)
-   * NOTE: ไม่รวม pending remove เพราะ pending ยังไม่ลบจริง
-   */
+  /** reset filters + page */
+  const resetFilters = useCallback(() => {
+    setTf({ wbs1: [], wbs2: [], wbs3: [], wbs4: [], unit: [] });
+    setPage(1);
+  }, [setPage]);
+
+  // =========================
+  // 3) Derived data
+  // =========================
   const filteredWorkingRows = useMemo(() => {
     return workingRows.filter((r) => {
       if (tf.wbs1.length && !tf.wbs1.includes(r.wbs1)) return false;
@@ -146,7 +119,6 @@ export default function QuerySection({ rows }: Props) {
       if (tf.wbs3.length && !tf.wbs3.includes(r.wbs3)) return false;
       if (tf.wbs4.length && !tf.wbs4.includes(r.wbs4)) return false;
 
-      // ✅ Unit filter
       const u = normalizeUnit(r.unit);
       if (tf.unit.length && !tf.unit.includes(u)) return false;
 
@@ -154,7 +126,6 @@ export default function QuerySection({ rows }: Props) {
     });
   }, [workingRows, tf]);
 
-  /** pending count เฉพาะใน view ปัจจุบัน (หลังกรอง header แล้ว) */
   const pendingCountInFiltered = useMemo(() => {
     if (pendingRemoveIds.size === 0) return 0;
     let c = 0;
@@ -162,7 +133,6 @@ export default function QuerySection({ rows }: Props) {
     return c;
   }, [filteredWorkingRows, pendingRemoveIds]);
 
-  /** pagination computed */
   const totalPages = Math.max(
     1,
     Math.ceil(filteredWorkingRows.length / PAGE_SIZE),
@@ -173,107 +143,37 @@ export default function QuerySection({ rows }: Props) {
     return filteredWorkingRows.slice(start, start + PAGE_SIZE);
   }, [filteredWorkingRows, page]);
 
-  /** summary based on "applied state" (หลัง filter + applied removal) */
   const sumAmount = useMemo(
     () => filteredWorkingRows.reduce((acc, r) => acc + safeNum(r.amount), 0),
     [filteredWorkingRows],
   );
 
-  const qtyByUnit = useMemo(
+  const qtyByUnit: QtyByUnit[] = useMemo(
     () => sumByUnit(filteredWorkingRows),
     [filteredWorkingRows],
   );
 
   // =========================
-  // 3) ACTIONS / HELPERS
+  // 4) Apply pending removals (apply เฉพาะใน filtered view)
   // =========================
-
-  /** reset filters + page */
-  const resetFilters = useCallback(() => {
-    setTf({ wbs1: [], wbs2: [], wbs3: [], wbs4: [], unit: [] });
-    setPage(1);
-  }, []);
-
-  /** clear staging removal */
-  const clearPending = useCallback(() => {
-    setPendingRemoveIds(new Set());
-  }, []);
-
-  /** helper: patch filters แล้ว reset page (ใช้กับ dropdown) */
-  const patchFilters = useCallback((patch: Partial<TableFilters>) => {
-    setTf((prev) => ({ ...prev, ...patch }));
-    setPage(1);
-  }, []);
-
-  /** toggle pending row remove (highlight only) */
-  const togglePending = useCallback((id: string) => {
-    setPendingRemoveIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-    // NOTE: ไม่ reset page เพื่อรักษา UX (user ไม่หลุดหน้าที่กำลังดู)
-  }, []);
-
-  /**
-   * Search: สร้าง workingRows ใหม่จาก source rows
-   * - reset error/page/filters/pending ก่อน
-   * - filter amount > 0 ตามที่ต้องการ
-   */
-  const onSearch = useCallback(() => {
-    setError("");
-    setPage(1);
-    setTf({ wbs1: [], wbs2: [], wbs3: [], wbs4: [], unit: [] });
-    setPendingRemoveIds(new Set());
-
-    const regex = buildDescriptionRegex(input, matchMode);
-    if (!regex) {
-      setWorkingRows([]);
-      return;
-    }
-
-    try {
-      const filtered = filterByDescription(rows, regex).filter(
-        (r) => r.amount > 0,
-      );
-      const w: WorkingRow[] = filtered.map((r, i) => ({
-        ...r,
-        _id: makeRowId(r, i),
-      }));
-      setWorkingRows(w);
-    } catch {
-      setError("Invalid search pattern");
-      setWorkingRows([]);
-    }
-  }, [input, matchMode, rows]);
-
-  /**
-   * Apply pending removals:
-   * - ลบจริงจาก workingRows
-   * - clamp page ให้ไม่เกิน total pages หลังลบ
-   */
-  const applyPendingRemovals = useCallback(() => {
+  const applyPendingRemovalsInView = useCallback(() => {
     if (pendingRemoveIds.size === 0) return;
 
-    const newLen = filteredWorkingRows.length - pendingCountInFiltered;
+    const applyIds = new Set<string>();
+    for (const r of filteredWorkingRows) {
+      if (pendingRemoveIds.has(r._id)) applyIds.add(r._id);
+    }
+    if (applyIds.size === 0) return;
+
+    const newLen = filteredWorkingRows.length - applyIds.size;
     const newTotalPages = Math.max(1, Math.ceil(newLen / PAGE_SIZE));
-    setPage((p) => Math.min(p, newTotalPages));
 
-    setWorkingRows((prev) => prev.filter((r) => !pendingRemoveIds.has(r._id)));
-    clearPending();
-  }, [
-    clearPending,
-    filteredWorkingRows.length,
-    pendingCountInFiltered,
-    pendingRemoveIds,
-  ]);
+    applyPendingRemovals(applyIds, newTotalPages);
+  }, [applyPendingRemovals, filteredWorkingRows, pendingRemoveIds]);
 
   // =========================
-  // 4) EXPORT (CSV / PDF)
+  // 5) Export (CSV / PDF)
   // =========================
-
-  /** Export CSV จาก state ปัจจุบัน (หลัง header filters + applied removals) */
   const onDownloadCSV = useCallback(() => {
     const csv = toCSV(filteredWorkingRows.map(({ _id, ...rest }) => rest));
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -287,21 +187,13 @@ export default function QuerySection({ rows }: Props) {
     URL.revokeObjectURL(url);
   }, [filteredWorkingRows]);
 
-  /**
-   * Export PDF (client-side)
-   * - registerThaiFont เพื่อให้ภาษาไทยไม่เพี้ยน
-   * - auto-fit width เพื่อไม่ให้ตารางล้นหน้า
-   */
   const [exporting, setExporting] = useState(false);
-
-  const MAX_EXPORT_ROWS = 2000;
 
   const onExportPDF = useCallback(async () => {
     if (exporting) return;
 
     const data = filteredWorkingRows;
 
-    // กันเคสข้อมูลใหญ่จนทำให้ Chrome หน่วง/ค้าง
     if (data.length > MAX_EXPORT_ROWS) {
       alert(
         `ข้อมูล ${data.length.toLocaleString()} แถว เยอะเกินไป\n` +
@@ -312,19 +204,16 @@ export default function QuerySection({ rows }: Props) {
 
     setExporting(true);
     try {
-      // ให้ browser render ปุ่ม "Exporting..." ก่อนเริ่มทำงานหนัก
       await new Promise<void>((resolve) =>
         requestAnimationFrame(() => resolve()),
       );
 
-      // ---- Lazy imports (ลด bundle) ----
       const [{ jsPDF }, { default: autoTable }] = await Promise.all([
         import("jspdf"),
         import("jspdf-autotable"),
       ]);
       const { registerThaiFont } = await import("@/lib/pdf/registerThaiFont");
 
-      // ---- Doc setup ----
       const doc = new jsPDF({
         orientation: "landscape",
         unit: "pt",
@@ -337,12 +226,10 @@ export default function QuerySection({ rows }: Props) {
       const pageHeight = doc.internal.pageSize.getHeight();
       const available = pageWidth - marginX * 2;
 
-      // ---- Column width plan (auto-fit Description) ----
       const w = { wbs: 42, unit: 40, qty: 48, money: 62 };
       const fixed = w.wbs * 4 + w.unit + w.qty + w.money * 3;
       const descW = Math.max(180, available - fixed);
 
-      // ---- Header text ----
       doc.setFont("Sarabun", "normal");
       doc.setFontSize(14);
       doc.text(
@@ -354,7 +241,6 @@ export default function QuerySection({ rows }: Props) {
       doc.setFontSize(9);
       doc.text(`Generated: ${new Date().toLocaleString()}`, marginX, 46);
 
-      // ---- Table data ----
       const head = [
         [
           "WBS-1",
@@ -383,7 +269,6 @@ export default function QuerySection({ rows }: Props) {
         fmtNum(safeNum(r.amount)),
       ]);
 
-      // ---- Render table ----
       autoTable(doc, {
         head,
         body,
@@ -396,7 +281,7 @@ export default function QuerySection({ rows }: Props) {
           fontStyle: "normal",
           fontSize: 8,
           cellPadding: 3,
-          overflow: "ellipsize", // เร็วกว่า linebreak มาก
+          overflow: "ellipsize",
           valign: "top",
         },
 
@@ -429,7 +314,6 @@ export default function QuerySection({ rows }: Props) {
         },
       });
 
-      // ---- Summary (ใต้ตาราง) ----
       const sum = data.reduce((acc, r) => acc + safeNum(r.amount), 0);
       const qtyUnits = sumByUnit(data);
 
@@ -444,7 +328,6 @@ export default function QuerySection({ rows }: Props) {
         .join(" | ");
       doc.text(`Sum Qty (by Unit): ${qtyText || "-"}`, marginX, y + 14);
 
-      // ---- Save ----
       doc.save("boq_query_result.pdf");
     } finally {
       setExporting(false);
@@ -452,9 +335,8 @@ export default function QuerySection({ rows }: Props) {
   }, [exporting, filteredWorkingRows]);
 
   // =========================
-  // 5) FILTER OPTIONS (for dropdowns)
+  // 6) Filter options (for dropdowns)
   // =========================
-
   const wbs1Options = useMemo(() => {
     const s = new Set<string>();
     for (const r of workingRows) s.add(r.wbs1);
@@ -491,7 +373,6 @@ export default function QuerySection({ rows }: Props) {
     return Array.from(s).filter(Boolean).sort();
   }, [workingRows, tf.wbs1, tf.wbs2, tf.wbs3]);
 
-  /** ✅ Unit options (simple: ไม่ cascade เพื่อให้เลือก unit ได้เสมอ) */
   const unitOptions = useMemo(() => {
     const s = new Set<string>();
     for (const r of workingRows) s.add(normalizeUnit(r.unit));
@@ -499,9 +380,8 @@ export default function QuerySection({ rows }: Props) {
   }, [workingRows]);
 
   // =========================
-  // 6) UI TOKENS (tailwind strings)
+  // 7) UI TOKENS (tailwind strings)
   // =========================
-
   const card =
     "rounded-3xl border border-[color:var(--color-border)] bg-[color:var(--color-surface)] p-6 shadow-[var(--shadow-card)]";
   const muted = "text-[color:var(--color-muted-foreground)]";
@@ -561,9 +441,8 @@ export default function QuerySection({ rows }: Props) {
   const pendingRowCls = isDark ? "bg-red-500/10" : "bg-rose-50";
 
   // =========================
-  // 7) RENDER
+  // 8) RENDER
   // =========================
-
   return (
     <section className={`${card} space-y-4`}>
       {/* Header */}
@@ -635,7 +514,7 @@ export default function QuerySection({ rows }: Props) {
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                onClick={applyPendingRemovals}
+                onClick={applyPendingRemovalsInView}
                 disabled={pendingCountInFiltered === 0}
                 className={btnGhost}
               >
@@ -671,7 +550,6 @@ export default function QuerySection({ rows }: Props) {
             </div>
           </div>
 
-          {/* Table */}
           <QueryTable
             pageData={pageData}
             qtyByUnit={qtyByUnit}
