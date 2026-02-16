@@ -1,5 +1,7 @@
 "use client";
 
+import { APP_NAME } from "@/config/app.config";
+
 import { useEffect, useMemo, useState } from "react";
 import type { BoqBuilding, BoqRow } from "@/lib/boq/types";
 import {
@@ -17,7 +19,6 @@ import BarAmountCard from "./cards/BarAmountCard";
 import WBSSelect from "./controls/WBSSelect";
 
 import QuerySection from "./QuerySection";
-import ThemeToggle from "@/app/_components/ThemeToggle";
 
 function boqPath(building: BoqBuilding) {
   return `/boq/BOQ_${building}.xlsx`;
@@ -219,7 +220,7 @@ export default function BOQClient() {
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className={`text-xs font-medium ${muted}`}>
-                OKMD • Construction Management
+                {APP_NAME} • Construction Management
               </p>
               <h1 className={`text-2xl font-semibold ${fg}`}>BOQ Dashboard</h1>
               <p className={`mt-1 text-sm ${muted}`}>

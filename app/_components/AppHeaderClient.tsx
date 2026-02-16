@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { APP_LOGO } from "@/config/app.config";
+import { APP_LOGO, APP_NAME } from "@/config/app.config";
 
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -86,7 +86,7 @@ export default function AppHeader({ user, isAdmin }: Props) {
         >
           <Image
             src={APP_LOGO}
-            alt="OKMD"
+            alt={APP_NAME}
             width={50}
             height={50}
             className="rounded-full bg-white/10 p-1 ring-1 ring-black backdrop-blur-md object-contain"

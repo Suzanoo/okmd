@@ -1,79 +1,110 @@
-# OKMD – Construction Management Dashboard
+# 🚂 KAMUi Construction Dashboard
 
-Internal web application for **BOQ analysis, progress monitoring, and construction management**  
-for the **OKMD New Building Project**.
+Web-based dashboard for construction project management\
+Built with Next.js + Supabase
 
-Built with **Next.js (App Router)** and designed for real-world use by  
-QS, Engineers, and Project Managers.
-
----
+------------------------------------------------------------------------
 
 ## ✨ Features
 
-### 📦 BOQ Dashboard
-- Support **multiple buildings** (NKC1, NKC2)
-- Load BOQ directly from **embedded Excel files** (`/public/boq`)
-- Auto-detect valid sheets by required columns
-- Cascading visualization by:
-  - WBS-1 → WBS-2 → WBS-3 → WBS-4 → Description
-- Interactive charts (Pie / Bar) with lazy rendering for performance
+-   📊 BOQ Upload & Analysis (Excel)
+-   🧩 Cascading WBS Filter (WBS1 → WBS4)
+-   📈 S-Curve (Plan vs Actual)
+-   📅 Cut-off Date Reporting
+-   📋 KPI Summary Dashboard
+-   🎬 Media Page (Project Timelapse)
+-   🔐 Authentication (Supabase)
 
----
+------------------------------------------------------------------------
 
-### 🔍 BOQ Query Tool (Advanced)
-Designed as a **mini BOQ calculation workspace**
+## 🏗 Tech Stack
 
-- Search by **Description** (Thai / English)
-- Match mode:
-  - `ALL` words
-  - `ANY` word
-- Highlight matched keywords
-- Pagination for large BOQ tables
-- Exclude rows with `Amount = 0` automatically
+-   **Frontend**: Next.js (App Router) + TypeScript\
+-   **Styling**: TailwindCSS\
+-   **State Management**: Zustand\
+-   **Charts**: Recharts\
+-   **Backend**: Supabase\
+-   **Database**: PostgreSQL\
+-   **Deployment**: Vercel
 
-#### 🧮 Calculation-friendly UX
-- Select rows to remove (highlight only, not immediate delete)
-- Toggle selection (undo-friendly)
-- Apply removal in batch
-- Summary:
-  - **Sum Amount**
-  - **Sum Qty grouped by Unit** (prevents incorrect unit mixing)
+------------------------------------------------------------------------
 
----
+## 📂 Project Structure
 
-### 📊 Table Controls
-- Column-level filtering for:
-  - WBS-1
-  - WBS-2
-  - WBS-3
-  - WBS-4
-- Filter applies only to table (does not affect charts)
+    app/
+    _components/
+    lib/
+    public/
+    package.json
+    tsconfig.json
+    next.config.js
 
----
+------------------------------------------------------------------------
 
-### 📤 Export
-- Export current table state to:
-  - **CSV**
-  - **PDF**
-- Export respects:
-  - Search result
-  - Header filters
-  - Applied row removals
-  - Summary values
+## 🚀 Local Development
 
----
+### 1️⃣ Install dependencies
 
-## 🧠 Design Principles
+``` bash
+pnpm install
+```
 
-- **Real construction workflow first**
-- No fake aggregation (e.g. Qty with mixed units)
-- Clear separation of:
-  - Exploration (Charts)
-  - Audit & Calculation (Query Table)
-- Undo-friendly and predictable UX
-- Performance-aware (lazy render, client-side staging)
+### 2️⃣ Create environment file
 
----
+Create `.env.local`
 
-## 🗂 Project Structure (Simplified)
+``` env
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+```
 
+### 3️⃣ Run development server
+
+``` bash
+pnpm dev
+```
+
+Open:
+
+http://localhost:3000
+
+------------------------------------------------------------------------
+
+## 🌍 Deployment
+
+Recommended: **Vercel**
+
+1.  Push repository to GitHub\
+2.  Connect project in Vercel\
+3.  Add Environment Variables\
+4.  Deploy
+
+------------------------------------------------------------------------
+
+## 📊 Core Modules
+
+-   `/boq` → BOQ analysis
+-   `/report` → Project reporting
+-   `/media` → Timelapse videos
+-   `/admin` → Admin tools (if enabled)
+
+------------------------------------------------------------------------
+
+## 🔐 Security
+
+-   Supabase Authentication
+-   Environment variables stored securely
+-   Database managed via Supabase
+
+------------------------------------------------------------------------
+
+## 📦 Version
+
+**v1.0**
+
+------------------------------------------------------------------------
+
+## 👷 Author
+
+OKMD Construction Dashboard\
+Built for internal project management

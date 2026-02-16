@@ -8,9 +8,7 @@ import { useThemeStore } from "@/lib/theme/store";
 import QueryTable from "./query/QueryTable";
 import { useBoqQuery } from "./query/useBoqQuery";
 
-const PAGE_SIZE = 20; /** จำนวนแถวต่อหน้าในตารางผลลัพธ์ */
-const DEFAULT_LIMIT = 200; /** จำนวนแถวเริ่มต้นที่จะแสดง */
-const MAX_EXPORT_ROWS = 2000;
+import { DEFAULT_LIMIT, MAX_EXPORT_ROWS, PAGE_SIZE } from "@/config/boq.config";
 
 type Props = {
   /** BOQ rows ทั้งหมด (source of truth) */

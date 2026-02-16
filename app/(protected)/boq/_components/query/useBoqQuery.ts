@@ -75,10 +75,10 @@ export function useBoqQuery(rows: BoqRow[], opts?: Options) {
   const workingRows: WorkingRow[] = useMemo(() => {
     const base = rows.filter(amountGt0);
 
-    // 1) initial view (ยังไม่กด Search) => Top N
+    // 1) initial view (ยังไม่กด Search) => Full list (อาจจำกัดจำนวนด้วย defaultLimit)
     if (!applied || !applied.q.trim()) {
       return base
-        .slice(0, defaultLimit)
+        // .slice(0, defaultLimit)
         .map((r, i) => ({ ...r, _id: makeRowId(r, i) }))
         .filter((r) => !removedIds.has(r._id));
     }

@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { BG_IMAGE } from "@/config/app.config";
+import { BG_IMAGE, APP_NAME } from "@/config/app.config";
 
 type EntryCardProps = {
   title: string;
@@ -51,7 +51,7 @@ export default function HomePage() {
       {/* BG Image */}
       <Image
         src={BG_IMAGE}
-        alt="OKMD project background"
+        alt={`${APP_NAME} project background`}
         fill
         priority
         className="object-cover"
@@ -106,7 +106,9 @@ export default function HomePage() {
 
         {/* Footer */}
         <footer className="mt-auto pt-10 text-xs text-white/55 flex items-center">
-          <span>© {new Date().getFullYear()} OKMD CM • Built with Next.js</span>
+          <span>
+            © {new Date().getFullYear()} {APP_NAME} CM • Built with Next.js
+          </span>
 
           {/* <Link
             href="/forms"

@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 
-import ConfirmDialog from "./ConfirmDialog";
-
 export default function ResetPasswordDialog({
   userId,
   email,
