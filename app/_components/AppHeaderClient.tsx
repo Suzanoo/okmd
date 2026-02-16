@@ -118,7 +118,7 @@ export default function AppHeader({ user, isAdmin }: Props) {
             rel="noreferrer"
             className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm text-white/90 backdrop-blur-md transition hover:bg-white/15"
           >
-            KAMUI Website
+            {APP_NAME} Website
             <ExternalLink className="h-4 w-4" />
           </a>
         </nav>
@@ -212,14 +212,16 @@ export default function AppHeader({ user, isAdmin }: Props) {
               <div className="rounded-xl bg-white/10 p-2 ring-1 ring-white/10">
                 <Image
                   src={APP_LOGO}
-                  alt="KAMUI"
+                  alt={APP_NAME}
                   width={36}
                   height={36}
                   className="object-contain"
                 />
               </div>
               <div>
-                <div className="text-sm font-semibold text-white">KAMUI</div>
+                <div className="text-sm font-semibold text-white">
+                  {APP_NAME}
+                </div>
                 <div className="text-xs text-white/60">
                   {user ? (
                     <div className="px-3 py-2 text-xs text-white/70 break-all">
@@ -282,7 +284,7 @@ export default function AppHeader({ user, isAdmin }: Props) {
                 rel="noreferrer"
                 className="flex items-center justify-between rounded-2xl px-3 py-3 text-sm font-medium text-white/90 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/20"
               >
-                <span>KAMUI Website</span>
+                <span>{APP_NAME} Website</span>
                 <ExternalLink className="h-4 w-4" />
               </a>
             </div>
