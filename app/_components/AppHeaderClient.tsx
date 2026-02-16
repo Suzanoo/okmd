@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { APP_LOGO } from "@/config/app.config";
+
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Menu, X, ExternalLink } from "lucide-react";
@@ -83,7 +85,7 @@ export default function AppHeader({ user, isAdmin }: Props) {
           onClick={() => setOpen(false)}
         >
           <Image
-            src="/images/logo.png"
+            src={APP_LOGO}
             alt="OKMD"
             width={50}
             height={50}
@@ -209,7 +211,7 @@ export default function AppHeader({ user, isAdmin }: Props) {
             <div className="flex items-center gap-3">
               <div className="rounded-xl bg-white/10 p-2 ring-1 ring-white/10">
                 <Image
-                  src="/images/logo.png"
+                  src={APP_LOGO}
                   alt="KAMUI"
                   width={36}
                   height={36}

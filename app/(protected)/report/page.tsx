@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { BG_IMAGE } from "@/config/app.config";
+
 type EntryCardProps = {
   title: string;
   description: string;
@@ -48,7 +50,7 @@ export default async function ReportPage() {
     <main className="relative min-h-screen overflow-hidden">
       {/* BG Image */}
       <Image
-        src="/images/okmd-2.jpg"
+        src={BG_IMAGE}
         alt="OKMD project background"
         fill
         priority
