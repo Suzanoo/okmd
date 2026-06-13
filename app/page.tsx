@@ -66,7 +66,7 @@ export default function HomePage() {
         {/* Hero */}
         <section className="mt-16">
           <p className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-white/80 backdrop-blur-md">
-            LET IT BE
+            QUE SERA, SERA.
           </p>
 
           <h1 className="mt-4 max-w-3xl text-4xl font-semibold tracking-tight text-white sm:text-5xl">
@@ -84,19 +84,19 @@ export default function HomePage() {
           {/* Action Cards */}
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <EntryCard
-              title="💰💰💰"
+              title=""
               description="Quantity & cost control • BOQ query • package summary"
               href="/boq"
-              badge="Cost"
+              badge="💰💰💰"
             />
             <EntryCard
-              title="📈 👩‍🚒 💰"
+              title=""
               description="Plan vs Actual • S-curve • weekly/monthly snapshots"
               href="/report"
-              badge="Reports"
+              badge="REPORT"
             />
             <EntryCard
-              title="📸 📽 💿"
+              title=""
               description="Project Visual Records • Video timelapse • Photo logs"
               href="/media"
               badge="MEDIA"
