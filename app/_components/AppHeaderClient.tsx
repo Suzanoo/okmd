@@ -13,7 +13,7 @@ import LogoutButton from "./LogoutButton";
 
 const nav = [
   { href: "/", label: "HOME" },
-  { href: "/boq", label: "MONEY" },
+  { href: "/boq", label: "BOQ" },
   { href: "/report", label: "REPORT" },
   { href: "/contact", label: "CONTACT US" },
 ];
