@@ -65,12 +65,12 @@ export default function HomePage() {
       <div className="relative mx-auto flex min-h-screen max-w-6xl flex-col px-6 py-10">
         {/* Hero */}
         <section className="mt-16">
-          <p className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-white/80 backdrop-blur-md">
+          {/* <p className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-white/80 backdrop-blur-md">
             QUE SERA, SERA.
-          </p>
+          </p> */}
 
           <h1 className="mt-4 max-w-3xl text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-            🙈 🙉 🙊
+            QUE SERA, SERA. 🙈 🙉 🙊
             {/* <span className="block text-white/70">
               Construction Management App
             </span> */}

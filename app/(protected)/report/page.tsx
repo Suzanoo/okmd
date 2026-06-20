@@ -1,113 +1,85 @@
-import Image from "next/image";
-import Link from "next/link";
+"use client";
 
-import { APP_NAME, BG_IMAGE } from "@/config/app.config";
+import { useEffect, useMemo, useState } from "react";
+import { KPICards } from "./_components/KPICards";
+import { ProgressTable } from "./_components/ProgressTable";
+import { ReportControls } from "./_components/ReportControls";
+import { SCurveChart } from "./_components/SCurveChart";
+import {
+  buildChartRows,
+  getBaseRows,
+  getCutoffOptions,
+} from "@/lib/report/aggregateProgress";
+import { calculateKpi } from "@/lib/report/calculateKpi";
+import { parseProgressCsv } from "@/lib/report/parseProgressCsv";
+import type { ProgressRow, ViewMode } from "@/types/report";
 
-type EntryCardProps = {
-  title: string;
-  description: string;
-  href: string;
-  badge?: string;
-};
+export default function ReportPage() {
+  const [rows, setRows] = useState<ProgressRow[]>([]);
+  const [mode, setMode] = useState<ViewMode>("weekly");
+  const [cutoffDate, setCutoffDate] = useState("");
 
-function EntryCard({ title, description, href, badge }: EntryCardProps) {
-  return (
-    <Link
-      href={href}
-      className="group relative rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-md transition
-                 hover:bg-white/15 hover:border-white/25 focus:outline-none focus:ring-2 focus:ring-white/40"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <h3 className="text-lg font-semibold tracking-tight text-white">
-          {title}
-        </h3>
+  useEffect(() => {
+    fetch("/data/progress.csv")
+      .then((res) => res.text())
+      .then((text) => {
+        const parsed = parseProgressCsv(text);
+        setRows(parsed);
+        setCutoffDate(parsed.at(-1)?.week_start ?? "");
+      })
+      .catch((error) => {
+        console.error("Failed to load progress.csv", error);
+      });
+  }, []);
 
-        {badge ? (
-          <span className="rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-xs text-white/90">
-            {badge}
-          </span>
-        ) : null}
-      </div>
+  const handleModeChange = (nextMode: ViewMode) => {
+    setMode(nextMode);
 
-      <p className="mt-2 text-sm leading-relaxed text-white/75">
-        {description}
-      </p>
+    const nextRows = getBaseRows(rows, nextMode);
+    setCutoffDate(nextRows.at(-1)?.week_start ?? "");
+  };
 
-      <div className="mt-4 flex items-center gap-2 text-sm font-medium text-white/90">
-        <span className="transition group-hover:translate-x-0.5">Open</span>
-        <span aria-hidden className="transition group-hover:translate-x-0.5">
-          →
-        </span>
-      </div>
+  const options = useMemo(() => getCutoffOptions(rows, mode), [rows, mode]);
 
-      <div className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 ring-1 ring-white/30 transition group-hover:opacity-100" />
-    </Link>
+  const baseRows = useMemo(() => getBaseRows(rows, mode), [rows, mode]);
+
+  const chartRows = useMemo(
+    () => buildChartRows(rows, mode, cutoffDate),
+    [rows, mode, cutoffDate],
   );
-}
 
-export default async function ReportPage() {
+  const kpi = useMemo(
+    () => calculateKpi(baseRows, cutoffDate),
+    [baseRows, cutoffDate],
+  );
+
   return (
-    <main className="relative min-h-screen overflow-hidden">
-      {/* BG Image */}
-      <Image
-        src={BG_IMAGE}
-        alt={`${APP_NAME} project background`}
-        fill
-        priority
-        className="object-cover"
-      />
-      {/* Overlays */}
-      <div className="absolute inset-0 bg-black/5" />
-      <div className="absolute inset-0 bg-linear-to-b from-black/20 via-black/45 to-black/70" />
-
-      {/* Content */}
-      <div className="relative mx-auto flex min-h-screen max-w-6xl flex-col px-6 py-10">
-        {/* Hero */}
-        <section className="mt-16">
-          <p className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs text-white/80 backdrop-blur-md">
-            LET IT BE
-          </p>
-
-          <h1 className="mt-4 max-w-3xl text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-            🙈 🙉 🙊
-          </h1>
-
-          {/* Action Cards */}
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <EntryCard
-              title="PROGRESS"
-              description="Plan vs Actual • S-curve • weekly/monthly snapshots"
-              href="/report/progress"
-              badge="Reports"
-            />
-            <EntryCard
-              title="MAN POWER"
-              description="Labour productivity • Manpower allocation • Weekly/monthly snapshots"
-              href="/report/manpower"
-              badge="Reports"
-            />
-            <EntryCard
-              title="COST"
-              description="Cost performance index (CPI) • Cost variance (CV) • Weekly/monthly snapshots"
-              href="/report/cost"
-              badge="Reports"
-            />
+    <main className="min-h-screen bg-background px-6 py-10 text-foreground">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-sm uppercase tracking-[0.35em] text-muted-foreground">
+              OKMD Construction Dashboard
+            </p>
+            <h1 className="mt-3 text-4xl font-bold tracking-tight">
+              Project Performance Report
+            </h1>
           </div>
-        </section>
 
-        {/* Footer */}
-        <footer className="mt-auto pt-10 text-xs text-white/55 flex items-center">
-          <span>
-            © {new Date().getFullYear()} {APP_NAME} • Built with Next.js
-          </span>
+          <ReportControls
+            mode={mode}
+            setMode={handleModeChange}
+            cutoffDate={cutoffDate}
+            setCutoffDate={setCutoffDate}
+            options={options}
+          />
+        </div>
 
-          {/* <Link
-            href="/forms"
-            className="ml-auto text-sm text-white/55  hover:text-foreground underline underline-offset-4"
-          >
-            Project Forms
-          </Link> */}
-        </footer>
+        <KPICards kpi={kpi} />
+
+        <SCurveChart data={chartRows} />
+
+        <ProgressTable data={chartRows} />
       </div>
     </main>
   );
