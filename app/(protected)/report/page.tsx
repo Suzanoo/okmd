@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { KPICards } from "./_components/KPICards";
-import { ProgressTable } from "./_components/ProgressTable";
+// import { ProgressTable } from "./_components/ProgressTable";
 import { ReportControls } from "./_components/ReportControls";
 import { SCurveChart } from "./_components/SCurveChart";
 import {
   buildChartRows,
+  // buildTableRows,
   getBaseRows,
   getCutoffOptions,
 } from "@/lib/report/aggregateProgress";
@@ -18,6 +19,34 @@ export default function ReportPage() {
   const [rows, setRows] = useState<ProgressRow[]>([]);
   const [mode, setMode] = useState<ViewMode>("weekly");
   const [cutoffDate, setCutoffDate] = useState("");
+
+  const options = useMemo(() => getCutoffOptions(rows, mode), [rows, mode]);
+
+  const baseRows = useMemo(() => getBaseRows(rows, mode), [rows, mode]);
+
+  const cutoffRow = useMemo(
+    () => baseRows.find((row) => row.week_start === cutoffDate) ?? null,
+    [baseRows, cutoffDate],
+  );
+
+  const chartRows = useMemo(
+    () => buildChartRows(rows, mode, cutoffDate),
+    [rows, mode, cutoffDate],
+  );
+
+  // const tableRows = useMemo(
+  //   () => buildTableRows(rows, mode, cutoffDate),
+  //   [rows, mode, cutoffDate],
+  // );
+
+  // useEffect(() => {
+  //   console.log("mode =", mode);
+  //   console.log("cutoff =", cutoffDate);
+  // }, [mode, cutoffDate]);
+
+  // useEffect(() => {
+  //   console.log("cutoffRow =", cutoffRow);
+  // }, [cutoffRow]);
 
   useEffect(() => {
     fetch("/data/progress.csv")
@@ -39,19 +68,7 @@ export default function ReportPage() {
     setCutoffDate(nextRows.at(-1)?.week_start ?? "");
   };
 
-  const options = useMemo(() => getCutoffOptions(rows, mode), [rows, mode]);
-
-  const baseRows = useMemo(() => getBaseRows(rows, mode), [rows, mode]);
-
-  const chartRows = useMemo(
-    () => buildChartRows(rows, mode, cutoffDate),
-    [rows, mode, cutoffDate],
-  );
-
-  const kpi = useMemo(
-    () => calculateKpi(baseRows, cutoffDate),
-    [baseRows, cutoffDate],
-  );
+  const kpi = useMemo(() => calculateKpi(cutoffRow), [cutoffRow]);
 
   return (
     <main className="min-h-screen bg-background px-6 py-10 text-foreground">
@@ -59,10 +76,10 @@ export default function ReportPage() {
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-sm uppercase tracking-[0.35em] text-muted-foreground">
-              OKMD Construction Dashboard
+              OKD Dashboard
             </p>
             <h1 className="mt-3 text-4xl font-bold tracking-tight">
-              Project Performance Report
+              QUE SERA, SERA. 🙈 🙉 🙊
             </h1>
           </div>
 
@@ -79,7 +96,7 @@ export default function ReportPage() {
 
         <SCurveChart data={chartRows} />
 
-        <ProgressTable data={chartRows} />
+        {/* <ProgressTable data={tableRows} /> */}
       </div>
     </main>
   );

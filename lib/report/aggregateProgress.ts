@@ -14,6 +14,10 @@ function formatMonth(dateText: string) {
   })
 }
 
+function getLabel(dateText: string, mode: ViewMode) {
+  return mode === "weekly" ? formatWeek(dateText) : formatMonth(dateText)
+}
+
 export function getMonthlyRows(rows: ProgressRow[]): ProgressRow[] {
   const map = new Map<string, ProgressRow>()
 
@@ -21,22 +25,26 @@ export function getMonthlyRows(rows: ProgressRow[]): ProgressRow[] {
     const key = row.week_start.slice(0, 7)
     const existing = map.get(key)
 
-    if (!existing || new Date(row.week_start) > new Date(existing.week_start)) {
+    if (!existing || row.week_start > existing.week_start) {
       map.set(key, row)
     }
   })
 
-  return Array.from(map.values())
+  return Array.from(map.values()).sort((a, b) =>
+    a.week_start.localeCompare(b.week_start)
+  )
 }
 
 export function getBaseRows(rows: ProgressRow[], mode: ViewMode): ProgressRow[] {
-  return mode === "weekly" ? rows : getMonthlyRows(rows)
+  const source = mode === "weekly" ? rows : getMonthlyRows(rows)
+
+  return [...source].sort((a, b) => a.week_start.localeCompare(b.week_start))
 }
 
 export function getCutoffOptions(rows: ProgressRow[], mode: ViewMode) {
   return getBaseRows(rows, mode).map((row) => ({
     value: row.week_start,
-    label: mode === "weekly" ? formatWeek(row.week_start) : formatMonth(row.week_start),
+    label: getLabel(row.week_start, mode),
   }))
 }
 
@@ -45,10 +53,33 @@ export function buildChartRows(
   mode: ViewMode,
   cutoffDate: string
 ): ChartRow[] {
-  return getBaseRows(rows, mode).map((row) => ({
+  if (!cutoffDate) return []
+
+  const baseRows = getBaseRows(rows, mode)
+
+  return baseRows.map((row) => ({
     date: row.week_start,
-    label: mode === "weekly" ? formatWeek(row.week_start) : formatMonth(row.week_start),
+    label: getLabel(row.week_start, mode),
     plan: row.plan,
     actual: row.week_start <= cutoffDate ? row.actual : null,
   }))
+}
+
+export function buildTableRows(
+  rows: ProgressRow[],
+  mode: ViewMode,
+  cutoffDate: string
+): ChartRow[] {
+  if (!cutoffDate) return []
+
+  const baseRows = getBaseRows(rows, mode)
+
+  return baseRows
+    .filter((row) => row.week_start <= cutoffDate)
+    .map((row) => ({
+      date: row.week_start,
+      label: getLabel(row.week_start, mode),
+      plan: row.plan,
+      actual: row.actual,
+    }))
 }

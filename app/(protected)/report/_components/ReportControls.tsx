@@ -19,31 +19,25 @@ export function ReportControls({
   options: Option[];
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-surface p-2 shadow-card">
       <select
         value={mode}
         onChange={(e) => setMode(e.target.value as ViewMode)}
-        className="rounded-2xl border border-white/15 bg-white/10 px-5 py-3 text-sm font-semibold text-white backdrop-blur-xl"
+        className="h-11 rounded-xl border border-border bg-background px-4 text-sm font-semibold text-foreground outline-none"
       >
-        <option className="bg-neutral-900" value="weekly">
-          Weekly
-        </option>
-        <option className="bg-neutral-900" value="monthly">
-          Monthly
-        </option>
+        <option value="weekly">Weekly</option>
+        <option value="monthly">Monthly</option>
       </select>
 
       <select
         value={cutoffDate}
         onChange={(e) => setCutoffDate(e.target.value)}
-        className="rounded-2xl border border-white/15 bg-white/10 px-5 py-3 text-sm font-semibold text-white backdrop-blur-xl"
+        className="h-11 min-w-[160px] rounded-xl border border-border bg-background px-4 text-sm font-semibold text-foreground outline-none"
       >
+        <option value="">Select cutoff</option>
+
         {options.map((option) => (
-          <option
-            className="bg-neutral-900"
-            key={option.value}
-            value={option.value}
-          >
+          <option key={option.value} value={option.value}>
             {option.label}
           </option>
         ))}
