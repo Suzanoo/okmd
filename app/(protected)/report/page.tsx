@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+
+import type { ActivityRow, ProgressRow, ViewMode } from "@/types/report";
+
 import { KPICards } from "./_components/KPICards";
 // import { ProgressTable } from "./_components/ProgressTable";
 import { ReportControls } from "./_components/ReportControls";
@@ -11,9 +14,13 @@ import {
   getBaseRows,
   getCutoffOptions,
 } from "@/lib/report/aggregateProgress";
+
 import { calculateKpi } from "@/lib/report/calculateKpi";
 import { parseProgressCsv } from "@/lib/report/parseProgressCsv";
-import type { ProgressRow, ViewMode } from "@/types/report";
+
+import { ActivityTable } from "./_components/ActivityTable";
+import { calculateActivityProgress } from "@/lib/report/calculateActivityProgress";
+import { parseActivityCsv } from "@/lib/report/parseActivityCsv";
 
 export default function ReportPage() {
   const [rows, setRows] = useState<ProgressRow[]>([]);
@@ -48,6 +55,8 @@ export default function ReportPage() {
   //   console.log("cutoffRow =", cutoffRow);
   // }, [cutoffRow]);
 
+  const [activityRows, setActivityRows] = useState<ActivityRow[]>([]);
+
   useEffect(() => {
     fetch("/data/progress.csv")
       .then((res) => res.text())
@@ -56,8 +65,20 @@ export default function ReportPage() {
         setRows(parsed);
         setCutoffDate(parsed.at(-1)?.week_start ?? "");
       })
+
       .catch((error) => {
         console.error("Failed to load progress.csv", error);
+      });
+  }, []);
+
+  useEffect(() => {
+    fetch("/data/progress_table.csv")
+      .then((res) => res.text())
+      .then((text) => {
+        setActivityRows(parseActivityCsv(text));
+      })
+      .catch((error) => {
+        console.error("Failed to load progress_table.csv", error);
       });
   }, []);
 
@@ -69,6 +90,11 @@ export default function ReportPage() {
   };
 
   const kpi = useMemo(() => calculateKpi(cutoffRow), [cutoffRow]);
+
+  const activityTableRows = useMemo(
+    () => calculateActivityProgress(activityRows, cutoffDate),
+    [activityRows, cutoffDate],
+  );
 
   return (
     <main className="min-h-screen bg-background px-6 py-10 text-foreground">
@@ -95,6 +121,7 @@ export default function ReportPage() {
         <KPICards kpi={kpi} />
 
         <SCurveChart data={chartRows} />
+        <ActivityTable data={activityTableRows} />
 
         {/* <ProgressTable data={tableRows} /> */}
       </div>

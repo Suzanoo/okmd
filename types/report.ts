@@ -22,3 +22,25 @@ export type KpiResult = {
   days: number
   status: "Ahead" | "Delay"
 }
+
+export type ActivityType = "P" | "A"
+
+export type ActivityRow = {
+  wbs: string
+  activity: string
+  amount: number
+  type: ActivityType
+  originalProgress: number
+  weeks: {
+    date: string
+    value: number
+  }[]
+}
+
+export type ActivityTableRow = {
+  wbs: string
+  activity: string
+  amount: number
+  type: ActivityType
+  progress: number
+}
